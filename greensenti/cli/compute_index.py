@@ -126,6 +126,10 @@ def ndvi(
 ) -> np.array:
     """
     Compute Normalized Difference Vegetation Index (NDVI).
+    Value ranges from -1 to 1. Negative values correspond to water.
+    Values close to zero (-0.1 to 0.1) generally correspond to barren areas of rock, sand, or snow. Low,
+    positive values represent shrub and grassland (approximately 0.2 to 0.4), while high values indicate
+    temperate and tropical rainforests (values approaching 1).
 
     ..note:: https://eos.com/index-stack/
     ..note:: https://medium.com/analytics-vidhya/satellite-imagery-analysis-with-python-3f8ccf8a7c32

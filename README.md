@@ -4,7 +4,7 @@
 
 Using Poetry:
 
-```sh
+```shell
 $ poetry install
 ```
 
@@ -52,6 +52,18 @@ From the CLI:
 ```shell
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/ejido.geojson
 $ greensenti raster apply-mask --output B08_10m_masked.jp2 examples/B08_10m.jp2 geojson/ejido.geojson
+$ greensenti compute-index ndvi --help
+Usage: greensenti compute-index ndvi [OPTIONS] B4 B8
+
+  Compute Normalized Difference Vegetation Index (NDVI).
+  
+Arguments:
+  B4  RED band (B04 for Sentinel-2, 10m)  [required]
+  B8  NIR band (B08 for Sentinel-2, 10m)  [required]
+
+Options:
+  --output PATH  Output file
+  --help         Show this message and exit.
 $ greensenti compute-index ndvi --output ndvi.tiff B04_10m_masked.jp2 B08_10m_masked.jp2
 index value: 0.21251319348812103
 exported to: /Users/john/ndvi.tiff
@@ -66,8 +78,9 @@ $ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tiff
 $ greensenti raster apply-mask --output B02_10m_masked.jp2 examples/B02_10m.jp2 geojson/teatinos.geojson
 $ greensenti raster apply-mask --output B03_10m_masked.jp2 examples/B03_10m.jp2 geojson/teatinos.geojson
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/teatinos.geojson
-$ greensenti compute-index true-color --output tc.tiff B04_10m_masked.jp2 B03_10m_masked.jp2 B02_10m_masked.jp2
-$ greensenti raster transform-image --output tc.png tc.tiff 
+$ greensenti compute-index true-color --output true-color.tiff B04_10m_masked.jp2 B03_10m_masked.jp2 B02_10m_masked.jp2
+exported to: /Users/john/true-color.tiff
+$ greensenti raster transform-image --output true-color.png true-color.tiff 
 ```
 
 <img src="resources/true-color.png" height="200" />
