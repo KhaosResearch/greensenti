@@ -58,7 +58,7 @@ exported to: /Users/john/ndvi.tiff
 $ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tiff
 ```
 
-<img src="resources/ndvi.png" height="400" />
+<img src="resources/ndvi.png" height="200" />
 
 ##### Compute true color of Teatinos Campus (University of Málaga)
 
@@ -70,4 +70,4 @@ $ greensenti compute-index true-color --output tc.tiff B04_10m_masked.jp2 B03_10
 $ greensenti raster transform-image --output tc.png tc.tiff 
 ```
 
-<img src="resources/true-color.png" height="400" />
+<img src="resources/true-color.png" height="200" />
