@@ -54,18 +54,20 @@ $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 
 $ greensenti raster apply-mask --output B08_10m_masked.jp2 examples/B08_10m.jp2 geojson/ejido.geojson
 $ greensenti compute-index ndvi --output ndvi.tiff B04_10m_masked.jp2 B08_10m_masked.jp2
 index value: 0.21251319348812103
-exported to: /Users/john/ndvi.tif
+exported to: /Users/john/ndvi.tiff
 $ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tiff
 ```
 
-![](resources/ndvi.png)
+<img src="resources/ndvi.png" height="400" />
 
 ##### Compute true color of Teatinos Campus (University of Málaga)
 
 ```shell
+$ greensenti raster apply-mask --output B02_10m_masked.jp2 examples/B02_10m.jp2 geojson/teatinos.geojson
 $ greensenti raster apply-mask --output B03_10m_masked.jp2 examples/B03_10m.jp2 geojson/teatinos.geojson
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/teatinos.geojson
-$ greensenti raster apply-mask --output B02_10m_masked.jp2 examples/B02_10m.jp2 geojson/teatinos.geojson
 $ greensenti compute-index true-color --output tc.tiff B04_10m_masked.jp2 B03_10m_masked.jp2 B02_10m_masked.jp2
 $ greensenti raster transform-image --output tc.png tc.tiff 
 ```
+
+<img src="resources/true-color.png" height="400" />
