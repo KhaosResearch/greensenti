@@ -1,6 +1,14 @@
-## green-senti _toolbox_
+## greensenti _toolbox_
+
+<a href="https://github.com/benhid/greensenti"><img alt="Version: 0.1.0" src="https://img.shields.io/badge/version-0.1.0-success?color=0080FF&style=flat-square"></a> <a href="https://github.com/benhid/greensenti"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg?style=flat-square"></a>
 
 ### Setup
+
+Using `pip`:
+
+```console
+$ pip install greensenti
+```
 
 Using Poetry:
 
@@ -73,6 +81,8 @@ $ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tiff
 <img src="resources/ndvi.png" height="200" />
 
 ##### Compute true color of Teatinos Campus (University of Málaga)
+
+From the CLI:
 
 ```console
 $ greensenti raster apply-mask --output B02_10m_masked.jp2 examples/B02_10m.jp2 geojson/teatinos.geojson

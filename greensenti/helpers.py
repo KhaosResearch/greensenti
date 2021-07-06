@@ -1,5 +1,3 @@
-from functools import partial
-
 import pyproj
 import rasterio
 from rasterio import mask
@@ -29,7 +27,7 @@ def crop_by_shape(filename: str, geom, outfile: str) -> None:
         dest.write(out_image)
 
 
-def project_shape(geom: list, scs: str = "epsg:4326", dcs: str = "epsg:32630"):
+def project_shape(geom, scs="epsg:4326", dcs="epsg:32630"):
     """
     Project a shape from a source coordinate system to another one.
     The source coordinate system can be obtain with `rasterio` as illustrated next:
@@ -44,6 +42,9 @@ def project_shape(geom: list, scs: str = "epsg:4326", dcs: str = "epsg:32630"):
     :param scs: Source reference coordinate system.
     :param dcs: Destination reference coordinate system.
     """
-    project = partial(pyproj.transform, pyproj.Proj(init=scs), pyproj.Proj(init=dcs))
+    init_crs = pyproj.CRS(scs)
+    final_crs = pyproj.CRS(dcs)
+
+    project = pyproj.Transformer.from_crs(init_crs, final_crs, always_xy=True).transform
 
     return transform(project, shape(geom))
