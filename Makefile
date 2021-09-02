@@ -7,8 +7,8 @@ clean:
 	@find . -type d -name '__pycache__' -exec rm -rf {} +
 
 black: clean
-	@poetry run isort --profile black greensenti/
-	@poetry run black greensenti/
+	@poetry run isort --profile black greensenti/ workflow.py
+	@poetry run black greensenti/ workflow.py
 
 lint:
 	@poetry run mypy greensenti/

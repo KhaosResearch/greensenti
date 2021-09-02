@@ -121,4 +121,8 @@ dmypy.json
 # VSCode
 .vscode
 
+# macOS
 .DS_Store
+
+# Sentinel-2 data
+S2*_MSIL2A*

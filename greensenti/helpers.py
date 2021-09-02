@@ -11,7 +11,7 @@ def crop_by_shape(filename: str, geom, outfile: str) -> None:
 
     :param filename: Input image.
     :param geom: Geometry.
-    :param outfile: Output file.
+    :param outfile: Path to output file.
     """
     # load the raster, mask it by the polygon and crop it
     with rasterio.open(filename) as src:
@@ -41,6 +41,7 @@ def project_shape(geom, scs="epsg:4326", dcs="epsg:32630"):
     :param geom: Geometry, e.g., [{'type': 'Polygon', 'coordinates': [[(1,2), (3,4), (5,6), (7,8), (9,10)]]}]
     :param scs: Source reference coordinate system.
     :param dcs: Destination reference coordinate system.
+    :return: Geometry in destination coordinate system.
     """
     init_crs = pyproj.CRS(scs)
     final_crs = pyproj.CRS(dcs)

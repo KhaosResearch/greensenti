@@ -2,6 +2,10 @@ from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
+    """
+    Settings for greensenti.
+    """
+
     DHUS_HOST: str = "https://scihub.copernicus.eu/dhus"
     DHUS_USERNAME: str = ""
     DHUS_PASSWORD: str = ""

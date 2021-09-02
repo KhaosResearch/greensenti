@@ -17,6 +17,9 @@ def get_product(
 ):
     """
     Downloads product data from remote storage to output folder.
+
+    :param title: Product name.
+    :param output: Path to output folder.
     """
     # download data to product data dir
     client = Minio(
@@ -48,6 +51,10 @@ def upload_product(
 ):
     """
     Uploads product's data to remote directory.
+
+    :param title: Product name.
+    :param folder: Product folder.
+    :param bucket: Destination bucket name.
     """
     # upload data to product data dir
     client = Minio(

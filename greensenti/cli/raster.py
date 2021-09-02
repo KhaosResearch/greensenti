@@ -33,7 +33,7 @@ def save_as_img(raster: np.array, output: str, **kwargs) -> str:
 
 @app.command()
 def transform_image(
-    band: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band (20m)"),
+    band: Path = typer.Argument(..., exists=True, file_okay=True, help="Input .tiff image"),
     output: Path = typer.Option(..., file_okay=True, help="Output file"),
     color_map: str = typer.Option(None, "--cmap", help="Color map"),
 ) -> Path:
@@ -63,13 +63,19 @@ def transform_image(
 
 @app.command()
 def apply_mask(
-    filename: Path = typer.Argument(..., exists=True, file_okay=True, help="Input filename"),
+    filename: Path = typer.Argument(..., exists=True, file_okay=True, help="Path to input file"),
     geojson: Path = typer.Argument(..., file_okay=True),
-    output: Path = typer.Option(..., help="Output file"),
+    output: Path = typer.Option(..., help="Path to output file"),
 ) -> Path:
     """
     Crop image data (jp2 imagery file) by shape.
+
+    :return: Path to output file.
     """
+    # makes sure the output dir exists
+    if not output.parent.is_dir():
+        output.parent.mkdir(parents=True)
+
     # load geojson file*
     #  *see: http://geojson.io/
     geojson = read_geojson(geojson)

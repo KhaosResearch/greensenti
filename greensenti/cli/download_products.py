@@ -17,6 +17,13 @@ def dhus_download(
 ):
     """
     Downloads products from DHUS.
+
+    :param geojson: GeoJSON file with product geometries.
+    :param from_date: From date (begin date).
+    :param to_date: To date (end date).
+    :param output: Output folder.
+    :param skip_unzip: Skip product unzip.
+    :return:
     """
     # load geojson file* and download products for an interval of dates
     #  *see: http://geojson.io/
@@ -28,7 +35,7 @@ def dhus_download(
         settings.DHUS_USERNAME, settings.DHUS_PASSWORD, settings.DHUS_HOST, show_progressbars=False
     )
 
-    typer.echo("searching products in scene")
+    typer.echo("Searching for products in scene")
 
     # search is limited to those scenes that intersect with the AOI (area of interest) polygon
     products = sentinel_api.query(
@@ -40,35 +47,40 @@ def dhus_download(
         date=(from_date, to_date),
     )
 
+    # get the list of products
     products_df = sentinel_api.to_dataframe(products)
-    uid_products = products_df.index
-    num_products = len(uid_products)
+    ids = products_df.index
 
-    typer.echo(f"found {num_products} scenes between {from_date} and {to_date}")
+    typer.echo(f"Found {len(ids)} scenes between {from_date} and {to_date}")
 
-    with typer.progressbar(uid_products, label="Processing products") as progress:
-        for product in progress:
-            p = products_df.loc[[product]]
-            p_title = p["title"].values[0]
-            p_uuid = p["uuid"].values[0]
+    # download products
+    product_infos, triggered, failed_downloads = sentinel_api.download_all(
+        ids, output, max_attempts=10, n_concurrent_dl=1, lta_retry_delay=600
+    )
 
-            typer.echo(f"processing {p_title}")
+    typer.echo(f"Success: {len(product_infos)}")
+    typer.echo(f"Triggered: {len(triggered)}")
+    typer.echo(f"Failed: {len(failed_downloads)}")
 
-            data_dir = Path(output, p_title)
+    if not skip_unzip:
+        for product_id, product_info in product_infos.items():
+            title = product_info["title"]
+
+            typer.echo(f"Unzipping {title}")
+
+            # make sure that the folder exists
+            data_dir = Path(output, title)
             data_dir.mkdir(parents=True, exist_ok=True)
 
-            # download zip-compressed scene to file system
-            zip_filename = Path(data_dir, p_title + ".zip")
-            if not zip_filename.is_file():
-                sentinel_api.download(p_uuid, directory_path=data_dir)
+            # zipfile
+            zip_filename = Path(output, title + ".zip")
 
-            if not skip_unzip:
-                # unzip file
-                typer.echo(f"unzip {p_title}")
+            # unzip product
+            if Path(data_dir, title).is_dir():
+                typer.echo(f"{title} already unzipped")
+                continue
 
-                safe_dir = Path(data_dir, p_title + ".SAFE")
-                if not safe_dir.is_dir():
-                    with zipfile.ZipFile(zip_filename, "r") as zip_file:
-                        zip_file.extractall(data_dir)
+            with zipfile.ZipFile(zip_filename, "r") as zip_file:
+                zip_file.extractall(data_dir)
 
-    typer.echo(f"processed {num_products} products")
+    return product_infos, triggered, failed_downloads
