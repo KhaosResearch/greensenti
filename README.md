@@ -1,6 +1,8 @@
 ## greensenti _toolbox_
 
-<a href="https://github.com/benhid/greensenti"><img alt="Version: 0.1.0" src="https://img.shields.io/badge/version-0.1.0-success?color=0080FF&style=flat-square"></a> <a href="https://github.com/benhid/greensenti"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg?style=flat-square"></a>
+![CI](https://github.com/benhid/greensenti/actions/workflows/ci.yml/badge.svg)
+![Release](https://github.com/benhid/greensenti/actions/workflows/release.yml/badge.svg)
+<img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
 ### Setup
 
