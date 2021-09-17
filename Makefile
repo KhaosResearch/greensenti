@@ -14,8 +14,9 @@ lint:
 	@poetry run mypy greensenti/
 
 release:
-	@git tag v$$(poetry version --short) 2>/dev/null || echo 'Version already released, update your version!'
-#	@git push origin v$$(poetry version --short)
+	@echo Bump version to v$$(poetry version --short)
+	@git tag v$$(poetry version --short)
+	@git push origin v$$(poetry version --short)
 
 .PHONY: tests
 
