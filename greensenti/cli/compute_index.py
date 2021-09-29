@@ -17,12 +17,11 @@ def cloud_cover_percentage(
     b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (20m)"),
     b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band (20m)"),
     tau: float = typer.Option(0.2, help="tau parameter"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> float:
     """
     Computes cloud percentage of an image based on:
-
     * https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/cby_cloud_detection#
-
     :param b3: B03 band (20m).
     :param b4: B04 band (20m).
     :param b11: B11 band (20m).
@@ -31,6 +30,7 @@ def cloud_cover_percentage(
     """
     with rasterio.open(b3) as green:
         GREEN = green.read(1).astype(np.float32)
+        kwargs = green.meta
     with rasterio.open(b4) as red:
         RED = red.read(1).astype(np.float32)
     with rasterio.open(b11) as swir11:
@@ -45,58 +45,24 @@ def cloud_cover_percentage(
     bRatio = (GREEN - 0.175) / (0.39 - 0.175)
     NGDR = (GREEN - RED) / (GREEN + RED)
 
-    is_cloud = ((bRatio > 1) | ((bRatio > 0) & (NGDR > 0))) & (GREEN != 0) & (SWIR11 > tau)
+    is_cloud = (
+        ((bRatio > 1) | ((bRatio > 0) & (NGDR > 0))) & (GREEN != 0) & (SWIR11 > tau)
+    )
 
     # compute and return cloud percentage
     cloud_cover_percentage = np.count_nonzero(is_cloud) * 100 / np.count_nonzero(GREEN)
 
     typer.echo(f"Cloud cover percentage: {cloud_cover_percentage}%")
 
-    return cloud_cover_percentage
-
-
-@app.command()
-def true_color(
-    r: Path = typer.Argument(..., exists=True, file_okay=True, help="RED band (B04 for Sentinel-2, 10m)"),
-    g: Path = typer.Argument(..., exists=True, file_okay=True, help="GREEN band (B03 for Sentinel-2, 10m)"),
-    b: Path = typer.Argument(..., exists=True, file_okay=True, help="BLUE band (B02 for Sentinel-2, 10m)"),
-    output: Optional[Path] = typer.Option(None, help="Output file"),
-) -> None:
-    """
-    Computes true color image (RGB).
-
-    :param r: RED band (B04 for Sentinel-2, 10m).
-    :param g: GREEN band (B03 for Sentinel-2, 10m).
-    :param b: BLUE band (B02 for Sentinel-2, 10m).
-    :output: Path to output file.
-    """
-    with rasterio.open(r) as red:
-        red_band = red.read(1).astype(np.float32)
-        kwargs = red.meta
-    with rasterio.open(g) as green:
-        green_band = green.read(1).astype(np.float32)
-    with rasterio.open(b) as blue:
-        blue_band = blue.read(1).astype(np.float32)
-
-    # create true color image
-    # adjust each band by the min-max so it will plot as RGB
-    rgb_image = np.dstack((red_band, green_band, blue_band))
-
-    max_pixel_value = rgb_image.max()
-    rgb_image = np.multiply(rgb_image, 255.0)
-    rgb_image = np.divide(rgb_image, max_pixel_value)
-    rgb_image = rgb_image.astype(np.uint8)
-
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(dtype=rasterio.float32, count=3)
-        with rasterio.open(output, "w", **kwargs) as rgb:
-            rgb.write(red_band.astype(rasterio.float32), 1)
-            rgb.write(green_band.astype(rasterio.float32), 2)
-            rgb.write(blue_band.astype(rasterio.float32), 3)
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(is_cloud.astype(rasterio.float32), 1)
 
         typer.echo(f"exported to: {output.absolute()}")
 
+    return cloud_cover_percentage
 
 @app.command()
 def moisture(
@@ -126,7 +92,7 @@ def moisture(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(dtype=rasterio.float32, count=1)
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(moisture.astype(rasterio.float32), 1)
 
@@ -170,7 +136,7 @@ def ndvi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(dtype=rasterio.float32, count=1)
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndvi.astype(rasterio.float32), 1)
 
@@ -214,7 +180,7 @@ def ndsi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(dtype=rasterio.float32, count=1)
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndsi.astype(rasterio.float32), 1)
 
@@ -253,7 +219,7 @@ def ndwi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(dtype=rasterio.float32, count=1)
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndwi.astype(rasterio.float32), 1)
 
@@ -263,10 +229,234 @@ def ndwi(
 
 
 @app.command()
+def evi2(
+    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (10m)"),
+    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="B08 band (10m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Compute Enhanced Vegetation Index 2 (EVI2) index.
+
+    :param b4: B04 band (10m).
+    :param b8: B08 band (10m).
+    :output: Path to output file.
+    :return: EVI2 index value.
+    """
+    with rasterio.open(b4) as band:
+        band_4 = band.read(1).astype(np.float32)
+        kwargs = band.meta
+    with rasterio.open(b8) as band:
+        band_8 = band.read(1).astype(np.float32)
+
+    # compute the index
+    evi2 = 2.4 * (band_8 - band_4) / (band_8 + band_4 + 1.0)
+    value = np.nanmean(evi2)
+
+    typer.echo(f"index value: {value}")
+
+    if output:
+        # update kwargs to reflect change in data type
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(evi2.astype(rasterio.float32), 1)
+
+        typer.echo(f"exported to: {output.absolute()}")
+
+    return value
+
+@app.command()
+def osavi(
+    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (10m)"),
+    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="B08 band (10m)"),
+    Y: float = typer.Option(0.16, help="Y parameter"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Optimized Soil Adjusted Vegetation Index (OSAVI) index.
+
+    :param b4: B04 band (10m).
+    :param b8: B08 band (10m).
+    :param Y: Y coefficient.
+    :output: Path to output file.
+    :return: OSAVI index value.
+    """
+    with rasterio.open(b4) as band:
+        band_4 = band.read(1).astype(np.float32)
+        kwargs = band.meta
+    with rasterio.open(b8) as band:
+        band_8 = band.read(1).astype(np.float32)
+
+    # compute the index
+    osavi = (1 + Y) * (band_8 - band_4) / (band_8 + band_4 + Y)
+    value = np.nanmean(osavi)
+
+    typer.echo(f"index value: {value}")
+
+    if output:
+        # update kwargs to reflect change in data type
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(osavi.astype(rasterio.float32), 1)
+
+        typer.echo(f"exported to: {output.absolute()}")
+
+    return value
+
+@app.command()
+def ndre(
+    b5: Path = typer.Argument(..., exists=True, file_okay=True, help="B05 band (60m)"),
+    b9: Path = typer.Argument(..., exists=True, file_okay=True, help="B09 band (60m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Normalized Difference NIR/Rededge Normalized Difference Red-Edge (NDRE) index.
+
+    :param b5: B05 band (60m).
+    :param b9: B09 band (60m).
+    :output: Path to output file.
+    :return: NDRE index value.
+    """
+    with rasterio.open(b5) as band:
+        band_5 = band.read(1).astype(np.float32)
+        kwargs = band.meta
+    with rasterio.open(b9) as band:
+        band_9 = band.read(1).astype(np.float32)
+
+    # compute the index
+    ndre = (band_9 - band_5) / (band_9 + band_5)
+    value = np.nanmean(ndre)
+
+    typer.echo(f"index value: {value}")
+
+    if output:
+        # update kwargs to reflect change in data type
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(ndre.astype(rasterio.float32), 1)
+
+        typer.echo(f"exported to: {output.absolute()}")
+
+    return value
+
+
+@app.command()
+def ndbg(
+    b2: Path = typer.Argument(..., exists=True, file_okay=True, help="B02 band (10m)"),
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band (10m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Normalized Difference Blue Green (NDBG) index.
+
+    :param b2: B02 band (10m).
+    :param b3: B03 band (10m).
+    :output: Path to output file.
+    :return: NDBG index value.
+    """
+    with rasterio.open(b2) as band:
+        band_2 = band.read(1).astype(np.float32)
+        kwargs = band.meta
+    with rasterio.open(b3) as band:
+        band_3 = band.read(1).astype(np.float32)
+
+    # compute the index
+    ndbg = (band_3 - band_2) / (band_3 + band_2)
+    value = np.nanmean(ndbg)
+
+    typer.echo(f"index value: {value}")
+
+    if output:
+        # update kwargs to reflect change in data type
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(ndbg.astype(rasterio.float32), 1)
+
+        typer.echo(f"exported to: {output.absolute()}")
+
+    return value
+
+@app.command()
+def mndwi(
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band (20m)"),
+    b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band (20m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Modified NDWI (MNDWI) index.
+
+    :param b3: B03 band (20m).
+    :param b11: B11 band (20m).
+    :output: Path to output file.
+    :return: MNDWI index value.
+    """
+    with rasterio.open(b3) as band:
+        band_3 = band.read(1).astype(np.float32)
+        kwargs = band.meta
+    with rasterio.open(b11) as band:
+        band_11 = band.read(1).astype(np.float32)
+
+    # compute the index
+    mndwi = (band_3 - band_11) / (band_3 + band_11)
+    value = np.nanmean(mndwi)
+
+    typer.echo(f"index value: {value}")
+
+    if output:
+        # update kwargs to reflect change in data type
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(mndwi.astype(rasterio.float32), 1)
+
+        typer.echo(f"exported to: {output.absolute()}")
+
+    return value
+
+@app.command()
+def bri(
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band (10m)"),
+    b5: Path = typer.Argument(..., exists=True, file_okay=True, help="B05 band (20m)"),
+    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="B08 band (10m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Browning Reflectance Index (BRI) index.
+
+    :param b3: B03 band (10m).
+    :param b5: B05 band (20m).
+    :param b8: B08 band (10m).
+    :output: Path to output file.
+    :return: BRI index value.
+    """
+    with rasterio.open(b3) as band:
+        band_3 = band.read(1).astype(np.float32)
+        kwargs = band.meta
+    with rasterio.open(b5) as band:
+        band_5_20m = band.read(1).astype(np.float32)
+        band_5 = np.repeat(np.repeat(band_5_20m, 2, axis=0), 2, axis=1)
+    with rasterio.open(b8) as band:
+        band_8 = band.read(1).astype(np.float32)
+
+    # compute the index
+    bri = (1 / band_3 - 1 / band_5) / band_8
+    value = np.nanmean(bri)
+
+    typer.echo(f"index value: {value}")
+
+    if output:
+        # update kwargs to reflect change in data type
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(bri.astype(rasterio.float32), 1)
+
+        typer.echo(f"exported to: {output.absolute()}")
+
+    return value
+
+@app.command()
 def evi(
     b2: Path = typer.Argument(..., exists=True, file_okay=True, help="B02 band (10m)"),
     b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (10m)"),
-    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (10m)"),
+    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="B08 band (10m)"),
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> np.array:
     """
@@ -275,7 +465,7 @@ def evi(
 
     :param b2: B02 band (10m).
     :param b4: B04 band (10m).
-    :param b8: B04 band (10m).
+    :param b8: B08 band (10m).
     :output: Path to output file.
     :return: EVI index value.
     """
@@ -288,14 +478,14 @@ def evi(
         band_8 = band.read(1).astype(np.float32)
 
     # compute the index
-    evi = (2.5 * (band_8 - band_4)) / (band_8 + 6 * band_4 - 7.5 * band_2 + 1)
+    evi = 2.5 * (band_8 - band_4) / ((band_8 + 6 * band_4 - 7.5 * band_2) + 1)
     value = np.nanmean(evi)
 
     typer.echo(f"index value: {value}")
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(dtype=rasterio.float32, count=1)
+        kwargs.update(dtype=rasterio.float32, count=1, driver="GTiff")
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(evi.astype(rasterio.float32), 1)
 
