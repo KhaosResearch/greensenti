@@ -5,10 +5,14 @@ from pathlib import Path
 import typer
 from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 
-from greensenti.settings import settings
+from greensenti.settings import BaseSettings
+
+app = typer.Typer()
+settings = BaseSettings()
 
 
-def dhus_download(
+@app.command()
+def download(
     geojson: Path = typer.Argument(..., exists=True, file_okay=True, help="GeoJSON"),
     from_date: datetime = typer.Argument(..., formats=["%Y-%m-%d"], help="From date (begin date)"),
     to_date: datetime = typer.Argument(..., formats=["%Y-%m-%d"], help="To date (end date)"),
@@ -25,19 +29,19 @@ def dhus_download(
     :param skip_unzip: Skip product unzip.
     :return:
     """
-    # load geojson file* and download products for an interval of dates
+    # Load geojson file* and download products for an interval of dates.
     #  *see: http://geojson.io/
     geojson = read_geojson(geojson)
     footprint = geojson_to_wkt(geojson)
 
-    # initialize Sentinel client
     sentinel_api = SentinelAPI(
-        settings.DHUS_USERNAME, settings.DHUS_PASSWORD, settings.DHUS_HOST, show_progressbars=False
+        settings.dhus_username, settings.dhus_password, settings.dhus_host, show_progressbars=False
     )
 
     typer.echo("Searching for products in scene")
 
-    # search is limited to those scenes that intersect with the AOI (area of interest) polygon
+    # Search is limited to those scenes that intersect with the AOI
+    # (area of interest) polygon.
     products = sentinel_api.query(
         area=footprint,
         filename="S2*",
@@ -47,13 +51,13 @@ def dhus_download(
         date=(from_date, to_date),
     )
 
-    # get the list of products
+    # Get the list of products.
     products_df = sentinel_api.to_dataframe(products)
     ids = products_df.index
 
     typer.echo(f"Found {len(ids)} scenes between {from_date} and {to_date}")
 
-    # download products
+    # Download products.
     product_infos, triggered, failed_downloads = sentinel_api.download_all(
         ids, output, max_attempts=10, n_concurrent_dl=1, lta_retry_delay=600
     )
@@ -68,14 +72,12 @@ def dhus_download(
 
             typer.echo(f"Unzipping {title}")
 
-            # make sure that the folder exists
+            # Make sure the output folder exists.
             data_dir = Path(output, title)
             data_dir.mkdir(parents=True, exist_ok=True)
 
-            # zipfile
             zip_filename = Path(output, title + ".zip")
 
-            # unzip product
             if Path(data_dir, title).is_dir():
                 typer.echo(f"{title} already unzipped")
                 continue
