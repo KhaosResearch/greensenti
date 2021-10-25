@@ -13,9 +13,9 @@ app = typer.Typer()
 
 @app.command()
 def cloud_cover_percentage(
-    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band (20m)"),
-    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (20m)"),
-    b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band (20m)"),
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band for Sentinel-2 (20m)"),
+    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band for Sentinel-2 (20m)"),
+    b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band for Sentinel-2 (20m)"),
     tau: float = typer.Option(0.2, help="tau parameter"),
 ) -> float:
     """
@@ -55,9 +55,9 @@ def cloud_cover_percentage(
 
 @app.command()
 def true_color(
-    r: Path = typer.Argument(..., exists=True, file_okay=True, help="RED band (B04 for Sentinel-2, 10m)"),
-    g: Path = typer.Argument(..., exists=True, file_okay=True, help="GREEN band (B03 for Sentinel-2, 10m)"),
-    b: Path = typer.Argument(..., exists=True, file_okay=True, help="BLUE band (B02 for Sentinel-2, 10m)"),
+    r: Path = typer.Argument(..., exists=True, file_okay=True, help="RED - B04 band for Sentinel-2 (10m)"),
+    g: Path = typer.Argument(..., exists=True, file_okay=True, help="GREEN - B03 band for Sentinel-2 (10m)"),
+    b: Path = typer.Argument(..., exists=True, file_okay=True, help="BLUE - B02 band for Sentinel-2 (10m)"),
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> None:
     """
@@ -96,8 +96,8 @@ def true_color(
 
 @app.command()
 def moisture(
-    b8a: Path = typer.Argument(..., exists=True, file_okay=True, help="B8A band (60m)"),
-    b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band (60m)"),
+    b8a: Path = typer.Argument(..., exists=True, file_okay=True, help="B8A band for Sentinel-2 (60m)"),
+    b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band for Sentinel-2 (60m)"),
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> np.array:
     """
@@ -128,8 +128,8 @@ def moisture(
 
 @app.command()
 def ndvi(
-    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="RED band (B04 for Sentinel-2, 10m)"),
-    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="NIR band (B08 for Sentinel-2, 10m)"),
+    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="RED - B04 band for Sentinel-2 (10m)"),
+    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="NIR - B08 band for Sentinel-2 (10m)"),
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> np.array:
     """
@@ -142,10 +142,10 @@ def ndvi(
     ..note:: https://eos.com/index-stack/
     ..note:: https://medium.com/analytics-vidhya/satellite-imagery-analysis-with-python-3f8ccf8a7c32
 
-    :param b4: RED band (B04 for Sentinel-2, 10m).
-    :param b8: NIR band (B08 for Sentinel-2, 10m).
+    :param b4: RED - B04 band for Sentinel-2 (10m).
+    :param b8: NIR - B08 band for Sentinel-2 (10m).
     :output: Path to output file.
-    :return: NDVI mean index value.
+    :return: NDVI band.
     """
     with rasterio.open(b4) as red:
         RED = red.read(1).astype(np.float32)
@@ -167,8 +167,8 @@ def ndvi(
 
 @app.command()
 def ndsi(
-    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="GREEN band (B03 for Sentinel-2, 20m)"),
-    b11: Path = typer.Argument(..., exists=True, file_okay=True, help="SWIR band (B11 for Sentinel-2, 20m)"),
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="GREEN - B03 band for Sentinel-2 (20m)"),
+    b11: Path = typer.Argument(..., exists=True, file_okay=True, help="SWIR - B11 band for Sentinel-2 (20m)"),
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> np.array:
     """
@@ -203,8 +203,8 @@ def ndsi(
 
 @app.command()
 def ndwi(
-    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="GREEN band (B03 for Sentinel-2)"),
-    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="NIR band (B08 for Sentinel-2)"),
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="GREEN - B03 band for Sentinel-2 (10m))"),
+    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="NIR - B08 band for Sentinel-2 (10m)"),
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> np.array:
     """
@@ -237,9 +237,9 @@ def ndwi(
 
 @app.command()
 def evi(
-    b2: Path = typer.Argument(..., exists=True, file_okay=True, help="B02 band (10m)"),
-    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (10m)"),
-    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (10m)"),
+    b2: Path = typer.Argument(..., exists=True, file_okay=True, help="B02 band for Sentinel-2 (10m)"),
+    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band for Sentinel-2 (10m)"),
+    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="B08 band for Sentinel-2 (10m)"),
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> np.array:
     """

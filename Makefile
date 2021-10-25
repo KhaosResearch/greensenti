@@ -21,4 +21,4 @@ release:
 .PHONY: tests
 
 tests:
-	@poetry run pytest -s tests/ --quiet
+	@poetry run pytest -s tests/
