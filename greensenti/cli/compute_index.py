@@ -189,7 +189,7 @@ def ndsi(
         band_11 = band.read(1).astype(np.float32)
 
     ndsi = (band_3 - band_11) / (band_3 + band_11)
-    ndsi = (ndsi < 0.42) * 1  # apply threshold (values above 0.42 are regarded as snowy)
+    #ndsi = (ndsi < 0.42) * 1  # apply threshold (values above 0.42 are regarded as snowy)
 
     if output:
         # Update kwargs to reflect change in data type.
