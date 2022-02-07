@@ -73,5 +73,5 @@ jobs:
       run: |
         MACHINE_IP="$(tailscale ip -6 $MACHINE)"
         echo dist "[$USER]@[$MACHINE_IP]:/tmp/"
-        scp -r dist "[$USER]@[$MACHINE_IP]:/tmp/"
+        scp -r dist "$USER@[$MACHINE_IP]:/tmp/"
         ssh $MACHINE_IP 'python -m twine upload -r khaos /tmp/dist/'
