@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 from typer.testing import CliRunner
@@ -20,6 +22,6 @@ def test_ndvi_cli():
 
 
 def test_ndvi():
-    band = ndvi(b4="tests/data/B04_10m.jp2", b8="tests/data/B08_10m.jp2", output=None)
+    band = ndvi(b4=Path("tests/data/B04_10m.jp2"), b8=Path("tests/data/B08_10m.jp2"), output=None)
     value = np.nanmean(band)
     assert value == pytest.approx(0.31759134)

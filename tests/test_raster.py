@@ -1,5 +1,4 @@
 from shapely.geometry import Polygon
-from typer.testing import CliRunner
 
 from greensenti.cli.raster import project_shape
 

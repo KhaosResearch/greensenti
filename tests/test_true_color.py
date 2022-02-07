@@ -1,5 +1,3 @@
-import numpy as np
-import pytest
 from typer.testing import CliRunner
 
 from greensenti import app

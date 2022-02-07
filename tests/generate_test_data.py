@@ -1,6 +1,4 @@
-import glob
-from datetime import datetime
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 from greensenti.cli.raster import apply_mask
 

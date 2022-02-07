@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 from typer.testing import CliRunner
@@ -20,6 +22,6 @@ def test_moisture_cli():
 
 
 def test_moisture():
-    band = moisture(b8a="tests/data/B8A_60m.jp2", b11="tests/data/B11_60m.jp2", output=None)
+    band = moisture(b8a=Path("tests/data/B8A_60m.jp2"), b11=Path("tests/data/B11_60m.jp2"), output=None)
     value = np.nanmean(band)
     assert value == pytest.approx(0.09322458)

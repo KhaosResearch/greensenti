@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 from typer.testing import CliRunner
@@ -20,6 +22,6 @@ def test_ndsi_cli():
 
 
 def test_ndsi():
-    band = ndsi(b3="tests/data/B03_20m.jp2", b11="tests/data/B11_20m.jp2", output=None)
+    band = ndsi(b3=Path("tests/data/B03_20m.jp2"), b11=Path("tests/data/B11_20m.jp2"), output=None)
     value = np.nanmean(band)
     assert value == pytest.approx(0.905018)

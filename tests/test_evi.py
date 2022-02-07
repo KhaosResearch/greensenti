@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 from typer.testing import CliRunner
@@ -22,6 +24,11 @@ def test_evi_cli():
 
 
 def test_evi():
-    band = evi(b2="tests/data/B02_10m.jp2", b4="tests/data/B04_10m.jp2", b8="tests/data/B08_10m.jp2", output=None)
+    band = evi(
+        b2=Path("tests/data/B02_10m.jp2"),
+        b4=Path("tests/data/B04_10m.jp2"),
+        b8=Path("tests/data/B08_10m.jp2"),
+        output=None,
+    )
     value = np.nanmean(band)
-    assert value == pytest.approx(1.268987)
+    assert value == pytest.approx(1.3684527)
