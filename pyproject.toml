@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "greensenti"
-version = "0.1.1"
+version = "0.1.2"
 readme = "README.md"
 description = "README"
 homepage = "https://github.com/benhid/greensenti/"
@@ -8,7 +8,8 @@ repository = "https://github.com/benhid/greensenti/"
 authors = ["Antonio Benítez Hidalgo <antoniobenitezhid@gmail.com>"]
 classifiers=[
     "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python",
     "Typing :: Typed",
@@ -20,25 +21,23 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7.1"
-pydantic = {extras = ["dotenv"], version = "^1.8.1"}
-typer="^0.3.2"
-sentinelsat="^0.14"
-Shapely="^1.7.1"
-pandas="^1.2.3"
-pyproj="^3.0.1"
-rasterio="^1.2.1"
-numpy = "^1.20.2"
-matplotlib = "^3.4.1"
-pymongo = "^3.10.1"
-minio = "^6.0.0"
-simplejson = "^3.17.3"
+python = "^3.8"
+pydantic = {extras = ["dotenv"], version = "^1.9.0"}
+typer = "^0.4.0"
+sentinelsat = "^1.1.1"
+Shapely = "^1.8.0"
+pandas = "^1.4.0"
+pyproj = "^3.3.0"
+rasterio = "^1.2.10"
+numpy = "^1.22.2"
+matplotlib = "^3.5.1"
+simplejson = "^3.17.6"
 
 [tool.poetry.dev-dependencies]
-black = "^20.8.b1"
-mypy = "^0.780"
-isort = "^5.5.2"
-pytest = "^6.1.0"
+black = "^22.1.0"
+mypy = "^0.931"
+isort = "^5.10.1"
+pytest = "^7.0.0"
 
 [tool.poetry.scripts]
 greensenti = "greensenti.__main__:app"

@@ -11,7 +11,7 @@ black: clean
 	@poetry run black greensenti/ tests/ workflow.py
 
 lint:
-	@poetry run mypy greensenti/
+	@poetry run mypy greensenti/ tests/
 
 release:
 	@echo Bump version to v$$(poetry version --short)
