@@ -8,7 +8,6 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     steps:
     - uses: actions/checkout@v2
     - name: Install Python 3.7
@@ -48,7 +47,6 @@ jobs:
         prerelease: steps.check-version.outputs.prerelease == 'true'
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     needs: release
     env:
       MACHINE: workstation-6
