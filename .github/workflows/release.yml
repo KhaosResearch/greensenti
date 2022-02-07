@@ -49,8 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: release
     env:
-      MACHINE: workstation-6
-      USER: ubuntu
+      PROD: workstation-6
+      PROD_USER: ubuntu
     steps:
     - name: Setup Tailscale
       uses: tailscale/github-action@main
@@ -63,8 +63,8 @@ jobs:
         mkdir -p ~/.ssh
         printf '%s' "$SSH_KEY" >~/.ssh/github-actions
         chmod 0600 ~/.ssh/github-actions
-        MACHINE_IP="$(tailscale ip -6 $MACHINE)"
-        printf 'Host %s\n\tStrictHostKeyChecking=accept-new\n\tUser %s\n\tIdentityFile ~/.ssh/github-actions\n' "$MACHINE_IP" "$USER" >~/.ssh/config
+        PROD_IP="$(tailscale ip -6 $PROD)"
+        printf 'Host %s\n\tStrictHostKeyChecking=accept-new\n\tUser %s\n\tIdentityFile ~/.ssh/github-actions\n' "$PROD_IP" "$PROD_USER" >~/.ssh/config
     - name: Download artifact from release
       uses: actions/download-artifact@v2
       with:
@@ -72,7 +72,7 @@ jobs:
         path: dist/
     - name: Ship it to pypi repository
       run: |
-        MACHINE_IP="$(tailscale ip -6 $MACHINE)"
-        echo dist/ "github@[$MACHINE_IP]:/tmp/"
-        scp -r dist/ "github@[$MACHINE_IP]:/tmp/"
-        ssh $MACHINE_IP 'python -m twine upload -r khaos /tmp/dist/'
+        PROD_IP="$(tailscale ip -6 $PROD)"
+        echo dist/ "$PROD_USER@[$PROD_IP]:/tmp/"
+        scp -r dist/ "$PROD_USER@[$PROD_IP]:/tmp/"
+        ssh $PROD_IP 'python -m twine upload -r khaos /tmp/dist/'
