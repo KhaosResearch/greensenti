@@ -8,6 +8,7 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
     steps:
     - uses: actions/checkout@v2
     - name: Install Python 3.7
@@ -32,6 +33,12 @@ jobs:
     - name: Build project for distribution
       shell: bash
       run: poetry build
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        path: dist/*
+        retention-days: 2
     - name: Create Release
       uses: ncipollo/release-action@v1
       with:
@@ -39,3 +46,32 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         draft: false
         prerelease: steps.check-version.outputs.prerelease == 'true'
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: release
+    env:
+      MACHINE: workstation-6
+    steps:
+    - name: Setup Tailscale
+      uses: tailscale/github-action@main
+      with:
+        authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+    - name: Configure SSH
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+      run: |
+        mkdir -p ~/.ssh
+        printf '%s' "$SSH_KEY" >~/.ssh/github-actions
+        chmod 0600 ~/.ssh/github-actions
+        MACHINE_IP="$(tailscale ip -6 $MACHINE)"
+        printf 'Host %s\n\tStrictHostKeyChecking=accept-new\n\tUser github\n\tIdentityFile ~/.ssh/github-actions\n' "$MACHINE_IP" >~/.ssh/config
+    - name: Download artifact from release
+      uses: actions/download-artifact@v2
+      with:
+        name: dist
+    - name: Ship it to pypi repository
+      run: |
+        MACHINE_IP="$(tailscale ip -6 $MACHINE)"
+        scp -r dist "github@[$MACHINE_IP]:/tmp/"
+        ssh $MACHINE_IP 'python -m twine upload -r khaos /tmp/dist/'
