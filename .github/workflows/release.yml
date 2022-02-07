@@ -36,7 +36,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: dist
-        path: dist/*
+        path: dist/
         retention-days: 2
     - name: Create Release
       uses: ncipollo/release-action@v1
@@ -69,9 +69,10 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: dist
+        path: dist/
     - name: Ship it to pypi repository
       run: |
         MACHINE_IP="$(tailscale ip -6 $MACHINE)"
-        echo dist "[$USER]@[$MACHINE_IP]:/tmp/"
-        scp -r dist "$USER@[$MACHINE_IP]:/tmp/"
+        echo dist/ "$USER@[$MACHINE_IP]:/tmp/"
+        scp -r dist/ "$USER@[$MACHINE_IP]:/tmp/"
         ssh $MACHINE_IP 'python -m twine upload -r khaos /tmp/dist/'
