@@ -75,4 +75,4 @@ jobs:
         PROD_IP="$(tailscale ip -6 $PROD)"
         echo dist/ "$PROD_USER@[$PROD_IP]:/tmp/"
         scp -r dist/ "$PROD_USER@[$PROD_IP]:/tmp/"
-        ssh $PROD_IP 'python -m twine upload -r khaos /tmp/dist/*'
+        ssh $PROD_IP 'python -m twine upload -r khaos /tmp/dist/* && rm /tmp/dist/*'
