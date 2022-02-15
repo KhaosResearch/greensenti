@@ -14,6 +14,6 @@ def test_cloud_cover_percentage_group():
 def test_cloud_cover_percentage():
     result = runner.invoke(
         compute_index_group,
-        ["cloud-cover-percentage", "tests/data/B03_20m.jp2", "tests/data/B04_20m.jp2", "tests/data/B11_20m.jp2"],
+        ["cloud-cover-percentage", "tests/data/B1.jp2", "tests/data/B2.jp2", "tests/data/B3.jp2"],
     )
     assert result.exit_code == 0

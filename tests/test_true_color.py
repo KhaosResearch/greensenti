@@ -14,6 +14,6 @@ def test_true_color_group():
 def test_true_color():
     result = runner.invoke(
         compute_index_group,
-        ["true-color", "tests/data/B04_10m.jp2", "tests/data/B03_10m.jp2", "tests/data/B02_10m.jp2"],
+        ["true-color", "tests/data/B1.jp2", "tests/data/B2.jp2", "tests/data/B3.jp2"],
     )
     assert result.exit_code == 0

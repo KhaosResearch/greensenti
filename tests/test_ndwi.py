@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-import pytest
 from typer.testing import CliRunner
 
 from greensenti import app
@@ -17,11 +16,11 @@ def test_ndwi_cli_group():
 
 
 def test_ndwi_cli():
-    result = runner.invoke(compute_index_group, ["ndwi", "tests/data/B03_10m.jp2", "tests/data/B08_10m.jp2"])
+    result = runner.invoke(compute_index_group, ["ndwi", "tests/data/B3.jp2", "tests/data/B1.jp2"])
     assert result.exit_code == 0
 
 
 def test_ndwi():
-    band = ndwi(b3=Path("tests/data/B03_10m.jp2"), b8=Path("tests/data/B08_10m.jp2"), output=None)
+    band = ndwi(b3=Path("tests/data/B3.jp2"), b8=Path("tests/data/B1.jp2"), output=None)
     value = np.nanmean(band)
-    assert value == pytest.approx(-0.345819)
+    assert value == 0.5

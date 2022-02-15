@@ -1,19 +1,37 @@
-from pathlib import Path
+import numpy as np
+import rasterio
+from rasterio.crs import CRS
 
-from greensenti.cli.raster import apply_mask
+out_meta = {
+    "driver": "JP2OpenJPEG",
+    "dtype": "uint16",
+    "nodata": np.nan,
+    "width": 1,
+    "height": 1,
+    "count": 1,
+    "crs": CRS.from_epsg(32630),
+    "transform": rasterio.Affine(10.0, 0.0, 365540.0, 0.0, -10.0, 4066920.0),
+}
 
-data_dir = Path("data")
-product_safe_dir = (
-    data_dir
-    / "S2B_MSIL2A_20210103T110349_N0214_R094_T30SUF_20210103T130742/S2B_MSIL2A_20210103T110349_N0214_R094_T30SUF_20210103T130742.SAFE"
-)
+with rasterio.open("B1.jp2", "w", **out_meta) as dest:
+    dest.write(np.array([[[1], [1]]]))
 
-output_dir = Path("tests/data")
-geojson = output_dir / "box.geojson"
+with rasterio.open("B2.jp2", "w", **out_meta) as dest:
+    dest.write(np.array([[[2], [2]]]))
 
-for image in product_safe_dir.glob("GRANULE/*/IMG_DATA/**/*.jp2"):
-    apply_mask(
-        image,
-        geojson=geojson,
-        output=output_dir / image.name[-11:],
-    )
+with rasterio.open("B3.jp2", "w", **out_meta) as dest:
+    dest.write(np.array([[[3], [3]]]))
+
+out_meta.update({"height": 2, "width": 2})
+
+with rasterio.open("B11.jp2", "w", **out_meta) as dest:
+    dest.write(np.array([[[1, 1], [1, 1]]]))
+
+with rasterio.open("B22.jp2", "w", **out_meta) as dest:
+    dest.write(np.array([[[2, 2], [2, 2]]]))
+
+with rasterio.open("B33.jp2", "w", **out_meta) as dest:
+    dest.write(np.array([[[3, 3], [3, 3]]]))
+
+with rasterio.open("B12.jp2", "w", **out_meta) as dest:
+    dest.write(np.array([[[1, -1], [-1, 1]]]))

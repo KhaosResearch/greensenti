@@ -21,7 +21,7 @@ def cloud_cover_percentage(
 ) -> float:
     """
     Computes cloud percentage of an image based on:
-    
+
     * https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/cby_cloud_detection#
 
     ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
@@ -33,7 +33,7 @@ def cloud_cover_percentage(
     :param b4: B04 band (20m).
     :param b11: B11 band (20m).
     :param tau: `tau` coefficient for the cloud detection algorithm.
-    :return: Cloud cover percentage.
+    :return: Cloud cover mask.
     """
     with rasterio.open(b3) as green:
         GREEN = green.read(1).astype(np.float32)
@@ -109,7 +109,7 @@ def true_color(
 
     return rgb_image
 
-  
+
 @app.command()
 def moisture(
     b8a: Path = typer.Argument(..., exists=True, file_okay=True, help="B8A band for Sentinel-2 (60m)"),
@@ -127,7 +127,7 @@ def moisture(
     :param b8a: B8A band (60m).
     :param b11: B11 band (60m).
     :output: Path to output file.
-    :return: Moisture mean index value.
+    :return: Moisture index.
     """
     with rasterio.open(b8a) as band:
         band_8a = band.read(1).astype(np.float32)
@@ -177,7 +177,7 @@ def ndvi(
     :param b4: RED - B04 band for Sentinel-2 (10m).
     :param b8: NIR - B08 band for Sentinel-2 (10m).
     :output: Path to output file.
-    :return: NDVI band.
+    :return: NDVI index.
     """
     with rasterio.open(b4) as red:
         RED = red.read(1).astype(np.float32)
@@ -222,7 +222,7 @@ def ndsi(
     :param b3: GREEN band (B03 for Sentinel-2, 20m).
     :param b11: SWIR band (B11 for Sentinel-2, 20m).
     :output: Path to output file.
-    :return: NDSI mean index value.
+    :return: NDSI index.
     """
     with rasterio.open(b3) as band:
         band_3 = band.read(1).astype(np.float32)
@@ -233,7 +233,7 @@ def ndsi(
         band_11[band_11 == 0] = np.nan
 
     ndsi = (band_3 - band_11) / (band_3 + band_11)
-    ndsi = (ndsi < 0.42) * 1.0  # apply threshold (values above 0.42 are regarded as snowy)
+    ndsi = (ndsi > 0.42) * 1.0  # TODO apply threshold (values above 0.42 are regarded as snowy)
 
     ndsi[ndsi == np.inf] = np.nan
     ndsi[ndsi == -np.inf] = np.nan
@@ -267,7 +267,7 @@ def ndwi(
     :param b3: GREEN band (B03 for Sentinel-2).
     :param b8: NIR band (B08 for Sentinel-2).
     :output: Path to output file.
-    :return: NDWI mean index value.
+    :return: NDWI index.
     """
     with rasterio.open(b3) as band:
         band_3 = band.read(1).astype(np.float32)
@@ -304,7 +304,7 @@ def evi2(
     :param b4: B04 band (10m).
     :param b8: B08 band (10m).
     :output: Path to output file.
-    :return: EVI2 index value.
+    :return: EVI2 index.
     """
     with rasterio.open(b4) as band:
         band_4 = band.read(1).astype(np.float32)
@@ -328,7 +328,7 @@ def evi2(
 
     return evi2
 
-  
+
 @app.command()
 def osavi(
     b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band (10m)"),
@@ -343,7 +343,7 @@ def osavi(
     :param b8: B08 band (10m).
     :param Y: Y coefficient.
     :output: Path to output file.
-    :return: OSAVI index value.
+    :return: OSAVI index.
     """
     with rasterio.open(b4) as band:
         band_4 = band.read(1).astype(np.float32)
@@ -364,8 +364,9 @@ def osavi(
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(osavi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
-        
+
     return osavi
+
 
 @app.command()
 def ndre(
@@ -379,7 +380,7 @@ def ndre(
     :param b5: B05 band (60m).
     :param b9: B09 band (60m).
     :output: Path to output file.
-    :return: NDRE index value.
+    :return: NDRE index.
     """
     with rasterio.open(b5) as band:
         band_5 = band.read(1).astype(np.float32)
@@ -390,7 +391,7 @@ def ndre(
         band_9[band_9 == 0] = np.nan
 
     ndre = (band_9 - band_5) / (band_9 + band_5)
-    
+
     ndre[ndre == np.inf] = np.nan
     ndre[ndre == -np.inf] = np.nan
 
@@ -400,47 +401,10 @@ def ndre(
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndre.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
-        
+
     return ndre
 
 
-@app.command()
-def ndbg(
-    b2: Path = typer.Argument(..., exists=True, file_okay=True, help="B02 band (10m)"),
-    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band (10m)"),
-    output: Optional[Path] = typer.Option(None, help="Output file"),
-) -> np.array:
-    """
-    Normalized Difference Blue Green (NDBG) index.
-
-    :param b2: B02 band (10m).
-    :param b3: B03 band (10m).
-    :output: Path to output file.
-    :return: NDBG index value.
-    """
-    with rasterio.open(b2) as band:
-        band_2 = band.read(1).astype(np.float32)
-        band_2[band_2 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b3) as band:
-        band_3 = band.read(1).astype(np.float32)
-        band_3[band_3 == 0] = np.nan
-
-    ndbg = (band_3 - band_2) / (band_3 + band_2)
-    
-    ndbg[ndbg == np.inf] = np.nan
-    ndbg[ndbg == -np.inf] = np.nan
-
-    if output:
-        # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
-        with rasterio.open(output, "w", **kwargs) as gtif:
-            gtif.write(ndbg.astype(rasterio.float32), 1)
-        typer.echo(output.absolute())
-
-    return ndbg
-
-  
 @app.command()
 def mndwi(
     b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band (20m)"),
@@ -453,7 +417,7 @@ def mndwi(
     :param b3: B03 band (20m).
     :param b11: B11 band (20m).
     :output: Path to output file.
-    :return: MNDWI index value.
+    :return: MNDWI index.
     """
     with rasterio.open(b3) as band:
         band_3 = band.read(1).astype(np.float32)
@@ -464,7 +428,7 @@ def mndwi(
         band_11[band_11 == 0] = np.nan
 
     mndwi = (band_3 - band_11) / (band_3 + band_11)
-    
+
     mndwi[mndwi == np.inf] = np.nan
     mndwi[mndwi == -np.inf] = np.nan
 
@@ -476,6 +440,7 @@ def mndwi(
         typer.echo(output.absolute())
 
     return mndwi
+
 
 @app.command()
 def bri(
@@ -491,7 +456,7 @@ def bri(
     :param b5: B05 band (20m).
     :param b8: B08 band (10m).
     :output: Path to output file.
-    :return: BRI index value.
+    :return: BRI index.
     """
     with rasterio.open(b3) as band:
         band_3 = band.read(1).astype(np.float32)
@@ -499,8 +464,8 @@ def bri(
         kwargs = band.meta
     with rasterio.open(b5) as band:
         band_5_20m = band.read(1).astype(np.float32)
-        band_5_20m[band_5_20m == 0] = np.nan
         band_5 = np.repeat(np.repeat(band_5_20m, 2, axis=0), 2, axis=1)
+        band_5[band_5 == 0] = np.nan
     with rasterio.open(b8) as band:
         band_8 = band.read(1).astype(np.float32)
         band_8[band_8 == 0] = np.nan
@@ -518,6 +483,7 @@ def bri(
         typer.echo(output.absolute())
 
     return bri
+
 
 @app.command()
 def evi(
@@ -539,7 +505,7 @@ def evi(
     :param b4: B04 band (10m).
     :param b8: B08 band (10m).
     :output: Path to output file.
-    :return: EVI mean index value.
+    :return: EVI index.
     """
     with rasterio.open(b2) as band:
         band_2 = band.read(1).astype(np.float32)
@@ -565,3 +531,116 @@ def evi(
         typer.echo(output.absolute())
 
     return evi
+
+
+@app.command()
+def ndyi(
+    b2: Path = typer.Argument(..., exists=True, file_okay=True, help="B02 band for Sentinel-2 (10m)"),
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band for Sentinel-2 (10m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Compute Normalized Difference Yellow Index (NDYI) index.
+
+    * https://doi.org/10.1016/j.rse.2020.111660
+
+    :param b2: B02 for Sentinel-2.
+    :param b3: B03 for Sentinel-2.
+    :output: Path to output file.
+    :return: NDYI index.
+    """
+    with rasterio.open(b2) as band:
+        band_2 = band.read(1).astype(np.float32)
+        band_2[band_2 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b3) as band:
+        band_3 = band.read(1).astype(np.float32)
+        band_3[band_3 == 0] = np.nan
+
+    ndyi = (band_3 - band_2) / (band_3 + band_2)
+
+    ndyi[ndyi == np.inf] = np.nan
+    ndyi[ndyi == -np.inf] = np.nan
+
+    if output:
+        # Update kwargs to reflect change in data type.
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(ndyi.astype(rasterio.float32), 1)
+        typer.echo(output.absolute())
+
+    return ndyi
+
+
+@app.command()
+def ri(
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band for Sentinel-2 (10m))"),
+    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band for Sentinel-2 (10m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Compute Normalized Differende Red/Green Redness (RI) index.
+
+    :param b3: B03 for Sentinel-2.
+    :param b4: B04 for Sentinel-2.
+    :output: Path to output file.
+    :return: RI index.
+    """
+    with rasterio.open(b3) as band:
+        band_3 = band.read(1).astype(np.float32)
+        band_3[band_3 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b4) as band:
+        band_4 = band.read(1).astype(np.float32)
+        band_4[band_4 == 0] = np.nan
+
+    ri = (band_4 - band_3) / (band_4 + band_3)
+
+    ri[ri == np.inf] = np.nan
+    ri[ri == -np.inf] = np.nan
+
+    if output:
+        # Update kwargs to reflect change in data type.
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(ri.astype(rasterio.float32), 1)
+        typer.echo(output.absolute())
+
+    return ri
+
+
+@app.command()
+def cri1(
+    b2: Path = typer.Argument(..., exists=True, file_okay=True, help="B02 band for Sentinel-2 (10m))"),
+    b3: Path = typer.Argument(..., exists=True, file_okay=True, help="B03 band for Sentinel-2 (10m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Compute Carotenoid Reflectance (CRI1) index.
+
+    :param b2: B02 for Sentinel-2.
+    :param b3: B03 for Sentinel-2.
+    :output: Path to output file.
+    :return: CRI1 index.
+    """
+    with rasterio.open(b2) as band:
+        band_2 = band.read(1).astype(np.float32)
+        band_2[band_2 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b3) as band:
+        band_3 = band.read(1).astype(np.float32)
+        band_3[band_3 == 0] = np.nan
+
+    cri1 = (1 / band_2) / (1 / band_3)
+
+    cri1[cri1 == np.inf] = np.nan
+    cri1[cri1 == -np.inf] = np.nan
+
+    if output:
+        # Update kwargs to reflect change in data type.
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(cri1.astype(rasterio.float32), 1)
+        typer.echo(output.absolute())
+
+    return cri1

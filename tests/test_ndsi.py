@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import numpy as np
-import pytest
 from typer.testing import CliRunner
 
 from greensenti import app
@@ -17,11 +16,11 @@ def test_ndsi_cli_group():
 
 
 def test_ndsi_cli():
-    result = runner.invoke(compute_index_group, ["ndsi", "tests/data/B03_20m.jp2", "tests/data/B11_20m.jp2"])
+    result = runner.invoke(compute_index_group, ["ndsi", "tests/data/B3.jp2", "tests/data/B1.jp2"])
     assert result.exit_code == 0
 
 
 def test_ndsi():
-    band = ndsi(b3=Path("tests/data/B03_20m.jp2"), b11=Path("tests/data/B11_20m.jp2"), output=None)
+    band = ndsi(b3=Path("tests/data/B1.jp2"), b11=Path("tests/data/B3.jp2"), output=None)
     value = np.nanmean(band)
-    assert value == pytest.approx(0.905018)
+    assert value == 0.0
