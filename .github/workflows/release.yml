@@ -32,6 +32,12 @@ jobs:
     - name: Build project for distribution
       shell: bash
       run: poetry build
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: dist
+        path: dist/
+        retention-days: 2
     - name: Create Release
       uses: ncipollo/release-action@v1
       with:
@@ -39,3 +45,34 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         draft: false
         prerelease: steps.check-version.outputs.prerelease == 'true'
+  deploy:
+    runs-on: ubuntu-latest
+    needs: release
+    env:
+      PROD: workstation-6
+      PROD_USER: ubuntu
+    steps:
+    - name: Setup Tailscale
+      uses: tailscale/github-action@main
+      with:
+        authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+    - name: Configure SSH
+      env:
+        SSH_KEY: ${{ secrets.SSH_KEY }}
+      run: |
+        mkdir -p ~/.ssh
+        printf '%s' "$SSH_KEY" >~/.ssh/github-actions
+        chmod 0600 ~/.ssh/github-actions
+        PROD_IP="$(tailscale ip -6 $PROD)"
+        printf 'Host %s\n\tStrictHostKeyChecking=accept-new\n\tUser %s\n\tIdentityFile ~/.ssh/github-actions\n' "$PROD_IP" "$PROD_USER" >~/.ssh/config
+    - name: Download artifact from release
+      uses: actions/download-artifact@v2
+      with:
+        name: dist
+        path: dist/
+    - name: Ship it to pypi repository
+      run: |
+        PROD_IP="$(tailscale ip -6 $PROD)"
+        echo dist/ "$PROD_USER@[$PROD_IP]:/tmp/"
+        scp -r dist/ "$PROD_USER@[$PROD_IP]:/tmp/"
+        ssh $PROD_IP 'python -m twine upload -r khaos /tmp/dist/*'

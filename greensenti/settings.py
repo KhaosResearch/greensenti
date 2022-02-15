@@ -1,22 +1,18 @@
-from pydantic import BaseSettings
+from pydantic import BaseSettings as PydanticBaseSettings
+
+__all__ = ("BaseSettings",)
 
 
-class Settings(BaseSettings):
-    """
-    Settings for greensenti.
-    """
+class BaseSettings(PydanticBaseSettings):
 
-    DHUS_HOST: str = "https://scihub.copernicus.eu/dhus"
-    DHUS_USERNAME: str = ""
-    DHUS_PASSWORD: str = ""
-
-    MINIO_HOST: str = ""
-    MINIO_PORT: int = 8090
-    MINIO_ACCESS_KEY: str = "minio"
-    MINIO_SECRET_KEY: str = "minio"
+    dhus_host: str = "https://scihub.copernicus.eu/dhus"
+    dhus_username: str = ""
+    dhus_password: str = ""
 
     class Config:
         env_file = ".env"
-
-
-settings = Settings()
+        fields = {
+            "dhus_host": {"env": "DHUS_HOST"},
+            "dhus_username": {"env": "DHUS_USERNAME"},
+            "dhus_password": {"env": "DHUS_PASSWORD"},
+        }

@@ -21,7 +21,7 @@ $ poetry install
 ### Usage
 
 ```console
-$ greensenti --help
+$ poetry run greensenti --help
 Usage: greensenti [OPTIONS] COMMAND [ARGS]...
 
 Options:
@@ -35,29 +35,13 @@ Options:
 
 Commands:
   compute-index  Compute a plethora of remote sensing indexes.
-  dhus-download  Downloads products from DHUS.
-  product        Manage product storage.
+  dhus           DHUS access and download.
   raster         Raster operations.
 ```
 
 ### Tutorial
 
 ##### Compute NDVI of El Ejido district (Málaga)
-
-From Python:
-
-```py
-from greensenti.cli.compute_index import ndvi
-from greensenti.cli.raster import apply_mask, transform_image
-
-b04_masked = apply_mask(filename="examples/IMG_DATA/R10m/B04_10m.jp2", geojson="geojson/ejido.geojson", output="B04_10m_masked.jp2")
-b08_masked = apply_mask(filename="examples/IMG_DATA/R10m/B08_10m.jp2", geojson="geojson/ejido.geojson", output="B08_10m_masked.jp2")
-ndvi(b4=b04_masked, b8=b08_masked, output="ndvi.tiff")
-
-transform_image("ndvi.tiff", output="ndvi.png")
-```
-
-From the CLI:
 
 ```console
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/ejido.geojson
@@ -74,25 +58,20 @@ Arguments:
 Options:
   --output PATH  Output file
   --help         Show this message and exit.
-$ greensenti compute-index ndvi --output ndvi.tiff B04_10m_masked.jp2 B08_10m_masked.jp2
-index value: 0.21251319348812103
-exported to: /Users/john/ndvi.tiff
-$ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tiff
+$ greensenti compute-index ndvi --output ndvi.tif B04_10m_masked.jp2 B08_10m_masked.jp2
+$ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tif
 ```
 
 <img src="resources/ndvi.png" height="200" />
 
 ##### Compute true color of Teatinos Campus (University of Málaga)
 
-From the CLI:
-
 ```console
 $ greensenti raster apply-mask --output B02_10m_masked.jp2 examples/B02_10m.jp2 geojson/teatinos.geojson
 $ greensenti raster apply-mask --output B03_10m_masked.jp2 examples/B03_10m.jp2 geojson/teatinos.geojson
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/teatinos.geojson
-$ greensenti compute-index true-color --output true-color.tiff B04_10m_masked.jp2 B03_10m_masked.jp2 B02_10m_masked.jp2
-exported to: /Users/john/true-color.tiff
-$ greensenti raster transform-image --output true-color.png true-color.tiff 
+$ greensenti compute-index true-color --output true-color.tif B04_10m_masked.jp2 B03_10m_masked.jp2 B02_10m_masked.jp2
+$ greensenti raster transform-image --output true-color.png true-color.tif
 ```
 
 <img src="resources/true-color.png" height="200" />

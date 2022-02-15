@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
@@ -41,4 +40,4 @@ jobs:
       run: poetry install
     - name: Run pytest
       shell: bash
-      run: poetry run python -m unittest discover -s tests/ --quiet
+      run: poetry run pytest -s tests/

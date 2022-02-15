@@ -7,11 +7,11 @@ clean:
 	@find . -type d -name '__pycache__' -exec rm -rf {} +
 
 black: clean
-	@poetry run isort --profile black greensenti/ workflow.py
-	@poetry run black greensenti/ workflow.py
+	@poetry run isort --profile black greensenti/ tests/ workflow.py
+	@poetry run black greensenti/ tests/ workflow.py
 
 lint:
-	@poetry run mypy greensenti/
+	@poetry run mypy greensenti/ tests/
 
 release:
 	@echo Bump version to v$$(poetry version --short)
@@ -21,4 +21,4 @@ release:
 .PHONY: tests
 
 tests:
-	@poetry run python -m unittest discover -s tests/ --quiet
+	@poetry run pytest -s tests/
