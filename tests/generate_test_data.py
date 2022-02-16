@@ -14,13 +14,13 @@ out_meta = {
 }
 
 with rasterio.open("B1.jp2", "w", **out_meta) as dest:
-    dest.write(np.array([[[1], [1]]]))
+    dest.write(np.array([[[1]]]))
 
 with rasterio.open("B2.jp2", "w", **out_meta) as dest:
-    dest.write(np.array([[[2], [2]]]))
+    dest.write(np.array([[[2]]]))
 
 with rasterio.open("B3.jp2", "w", **out_meta) as dest:
-    dest.write(np.array([[[3], [3]]]))
+    dest.write(np.array([[[3]]]))
 
 out_meta.update({"height": 2, "width": 2})
 
