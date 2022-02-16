@@ -17,7 +17,6 @@ def cloud_cover_percentage(
     b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band for Sentinel-2 (20m)"),
     b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band for Sentinel-2 (20m)"),
     tau: float = typer.Option(0.2, help="tau parameter"),
-    output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> float:
     """
     Computes cloud percentage of an image based on:
@@ -68,7 +67,7 @@ def true_color(
     g: Path = typer.Argument(..., exists=True, file_okay=True, help="GREEN - B03 band for Sentinel-2 (10m)"),
     b: Path = typer.Argument(..., exists=True, file_okay=True, help="BLUE - B02 band for Sentinel-2 (10m)"),
     output: Optional[Path] = typer.Option(None, help="Output file"),
-) -> None:
+) -> np.array:
     """
     Computes true color image composite (RGB).
 
@@ -80,6 +79,7 @@ def true_color(
     :param r: RED band (B04 for Sentinel-2, 10m).
     :param g: GREEN band (B03 for Sentinel-2, 10m).
     :param b: BLUE band (B02 for Sentinel-2, 10m).
+    :return: True color image.
     """
     with rasterio.open(r) as red:
         red_band = red.read(1).astype(np.float32)
@@ -126,7 +126,7 @@ def moisture(
 
     :param b8a: B8A band (60m).
     :param b11: B11 band (60m).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: Moisture index.
     """
     with rasterio.open(b8a) as band:
@@ -176,7 +176,7 @@ def ndvi(
 
     :param b4: RED - B04 band for Sentinel-2 (10m).
     :param b8: NIR - B08 band for Sentinel-2 (10m).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: NDVI index.
     """
     with rasterio.open(b4) as red:
@@ -221,7 +221,7 @@ def ndsi(
 
     :param b3: GREEN band (B03 for Sentinel-2, 20m).
     :param b11: SWIR band (B11 for Sentinel-2, 20m).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: NDSI index.
     """
     with rasterio.open(b3) as band:
@@ -266,7 +266,7 @@ def ndwi(
 
     :param b3: GREEN band (B03 for Sentinel-2).
     :param b8: NIR band (B08 for Sentinel-2).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: NDWI index.
     """
     with rasterio.open(b3) as band:
@@ -303,7 +303,7 @@ def evi2(
 
     :param b4: B04 band (10m).
     :param b8: B08 band (10m).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: EVI2 index.
     """
     with rasterio.open(b4) as band:
@@ -342,7 +342,7 @@ def osavi(
     :param b4: B04 band (10m).
     :param b8: B08 band (10m).
     :param Y: Y coefficient.
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: OSAVI index.
     """
     with rasterio.open(b4) as band:
@@ -379,7 +379,7 @@ def ndre(
 
     :param b5: B05 band (60m).
     :param b9: B09 band (60m).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: NDRE index.
     """
     with rasterio.open(b5) as band:
@@ -416,7 +416,7 @@ def mndwi(
 
     :param b3: B03 band (20m).
     :param b11: B11 band (20m).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: MNDWI index.
     """
     with rasterio.open(b3) as band:
@@ -455,7 +455,7 @@ def bri(
     :param b3: B03 band (10m).
     :param b5: B05 band (20m).
     :param b8: B08 band (10m).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: BRI index.
     """
     with rasterio.open(b3) as band:
@@ -504,7 +504,7 @@ def evi(
     :param b2: B02 band (10m).
     :param b4: B04 band (10m).
     :param b8: B08 band (10m).
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: EVI index.
     """
     with rasterio.open(b2) as band:
@@ -546,7 +546,7 @@ def ndyi(
 
     :param b2: B02 for Sentinel-2.
     :param b3: B03 for Sentinel-2.
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: NDYI index.
     """
     with rasterio.open(b2) as band:
@@ -583,7 +583,7 @@ def ri(
 
     :param b3: B03 for Sentinel-2.
     :param b4: B04 for Sentinel-2.
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: RI index.
     """
     with rasterio.open(b3) as band:
@@ -620,7 +620,7 @@ def cri1(
 
     :param b2: B02 for Sentinel-2.
     :param b3: B03 for Sentinel-2.
-    :output: Path to output file.
+    :param output: Path to output file.
     :return: CRI1 index.
     """
     with rasterio.open(b2) as band:
