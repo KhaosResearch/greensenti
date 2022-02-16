@@ -579,7 +579,7 @@ def ri(
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> np.array:
     """
-    Compute Normalized Differende Red/Green Redness (RI) index.
+    Compute Normalized Difference Red/Green Redness (RI) index.
 
     :param b3: B03 for Sentinel-2.
     :param b4: B04 for Sentinel-2.
