@@ -163,7 +163,7 @@ def true_color(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=3)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=0, count=3)
         with rasterio.open(output, "w", **kwargs) as rgb:
             rgb.write(red_band.astype(rasterio.float32), 1)
             rgb.write(green_band.astype(rasterio.float32), 2)
@@ -207,7 +207,7 @@ def moisture(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(moisture.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -303,7 +303,7 @@ def ndsi(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndsi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -347,7 +347,7 @@ def ndwi(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndwi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -384,7 +384,7 @@ def evi2(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(evi2.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -423,7 +423,7 @@ def osavi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(osavi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -460,7 +460,7 @@ def ndre(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndre.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -497,7 +497,7 @@ def mndwi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(mndwi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -540,7 +540,7 @@ def bri(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(bri.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -588,7 +588,7 @@ def evi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(evi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -627,7 +627,7 @@ def ndyi(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndyi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -664,7 +664,7 @@ def ri(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ri.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -701,7 +701,7 @@ def cri1(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(cri1.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
