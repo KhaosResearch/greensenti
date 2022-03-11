@@ -17,6 +17,7 @@ def cloud_cover_percentage(
     b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band for Sentinel-2 (20m)"),
     b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band for Sentinel-2 (20m)"),
     tau: float = typer.Option(0.2, help="tau parameter"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> float:
     """
     Computes cloud percentage of an image based on:
@@ -32,11 +33,13 @@ def cloud_cover_percentage(
     :param b4: B04 band (20m).
     :param b11: B11 band (20m).
     :param tau: `tau` coefficient for the cloud detection algorithm.
+    :param output: Path to output file.
     :return: Cloud cover mask.
     """
     with rasterio.open(b3) as green:
         GREEN = green.read(1).astype(np.float32)
         GREEN[GREEN == 0] = np.nan
+        kwargs = green.meta
     with rasterio.open(b4) as red:
         RED = red.read(1).astype(np.float32)
         RED[RED == 0] = np.nan
@@ -57,6 +60,13 @@ def cloud_cover_percentage(
 
     # Compute and return cloud percentage.
     cloud_cover_percentage = np.count_nonzero(is_cloud) * 100 / np.count_nonzero(GREEN)
+
+    if output:
+        # Update kwargs to reflect change in data type.
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(is_cloud.astype(rasterio.float32), 1)
+        typer.echo(output.absolute())
 
     return cloud_cover_percentage
 
