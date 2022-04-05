@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import pyproj
@@ -82,7 +83,7 @@ def save_as_img(raster: np.array, output: str, **kwargs) -> str:
 def transform_image(
     band: Path = typer.Argument(..., exists=True, file_okay=True, help="TIF image"),
     output: Path = typer.Option(..., file_okay=True, help="Output file"),
-    color_map: str = typer.Option(None, "--cmap", help="Color map"),
+    color_map: Optional[str] = typer.Option(None, "--cmap", help="Color map"),
 ) -> Path:
     """
     Transform raster to image (see full list of accepted drivers at https://gdal.org/drivers/raster/index.html).
