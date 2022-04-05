@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 import rasterio
 import typer
+from rasterio.warp import reproject, Resampling
 
 # Allow division by zero.
 np.seterr(divide="ignore", invalid="ignore")
@@ -17,6 +18,7 @@ def cloud_cover_percentage(
     b4: Path = typer.Argument(..., exists=True, file_okay=True, help="B04 band for Sentinel-2 (20m)"),
     b11: Path = typer.Argument(..., exists=True, file_okay=True, help="B11 band for Sentinel-2 (20m)"),
     tau: float = typer.Option(0.2, help="tau parameter"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> float:
     """
     Computes cloud percentage of an image based on:
@@ -32,11 +34,13 @@ def cloud_cover_percentage(
     :param b4: B04 band (20m).
     :param b11: B11 band (20m).
     :param tau: `tau` coefficient for the cloud detection algorithm.
+    :param output: Path to output file.
     :return: Cloud cover mask.
     """
     with rasterio.open(b3) as green:
         GREEN = green.read(1).astype(np.float32)
         GREEN[GREEN == 0] = np.nan
+        kwargs = green.meta
     with rasterio.open(b4) as red:
         RED = red.read(1).astype(np.float32)
         RED[RED == 0] = np.nan
@@ -58,8 +62,67 @@ def cloud_cover_percentage(
     # Compute and return cloud percentage.
     cloud_cover_percentage = np.count_nonzero(is_cloud) * 100 / np.count_nonzero(GREEN)
 
+    if output:
+        # Update kwargs to reflect change in data type.
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(is_cloud.astype(rasterio.float32), 1)
+        typer.echo(output.absolute())
+
     return cloud_cover_percentage
 
+@app.command()
+def cloud_mask(
+    scl: Path = typer.Argument(..., exists=True, file_okay=True, help="SCL band for Sentinel-2 (20m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Computes cloud mask of an image based on the SCL raster provided by sentinel.
+
+    ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
+     This value is used to define which pixels should be masked. See also:
+
+    * https://docs.digitalearthafrica.org/en/latest/data_specs/Sentinel-2_Level-2A_specs.html
+
+    :param scl: SCL band (20m).
+    :param output: Path to output file.
+    :return: Cloud cover mask.
+    """ 
+    scl_cloud_values = [3,8,9,10,11] # Classification band's cloud-related values
+    with rasterio.open(scl, "r") as cloud_mask_file:
+        kwargs = cloud_mask_file.meta
+        cloud_mask = cloud_mask_file.read(1)
+
+    # Calculate cloud mask from Sentinel's cloud related values
+    cloud_mask = np.isin(cloud_mask,scl_cloud_values).astype(np.int8)
+
+    dst_kwargs = kwargs.copy()
+    dst_kwargs['driver'] = 'GTiff'
+    # height and width is duplicated as input raster has 20m spatial resolution
+    dst_kwargs["height"] = int(kwargs["height"] * 2) 
+    dst_kwargs["width"] = int(kwargs["width"] * 2)
+    dst_kwargs["transform"] = rasterio.Affine(10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5])
+
+    output_band = np.ndarray(shape=(dst_kwargs["height"],dst_kwargs["width"]), dtype=np.int8)
+    reproject(
+        source=cloud_mask,
+        destination=output_band,
+        src_transform=kwargs['transform'],
+        src_crs=kwargs['crs'],
+        dst_resolution=(dst_kwargs['width'], dst_kwargs['height']),
+        dst_transform=dst_kwargs['transform'],
+        dst_crs=dst_kwargs['crs'],
+        resampling=Resampling.nearest,
+    )
+
+    output_band = output_band.reshape((dst_kwargs['count'],*output_band.shape))
+    if output:
+        with rasterio.open(output, "w", **dst_kwargs) as output_:
+            output_.write(output_band)
+
+        print(f"exported to: {output.absolute()}")
+
+    return output_band    
 
 @app.command()
 def true_color(
@@ -100,7 +163,7 @@ def true_color(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=3)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=0, count=3)
         with rasterio.open(output, "w", **kwargs) as rgb:
             rgb.write(red_band.astype(rasterio.float32), 1)
             rgb.write(green_band.astype(rasterio.float32), 2)
@@ -144,7 +207,7 @@ def moisture(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(moisture.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -240,7 +303,7 @@ def ndsi(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndsi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -284,7 +347,7 @@ def ndwi(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndwi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -321,7 +384,7 @@ def evi2(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(evi2.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -360,7 +423,7 @@ def osavi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(osavi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -397,7 +460,7 @@ def ndre(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndre.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -434,7 +497,7 @@ def mndwi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(mndwi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -477,7 +540,7 @@ def bri(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(bri.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -525,7 +588,7 @@ def evi(
 
     if output:
         # update kwargs to reflect change in data type
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(evi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -564,7 +627,7 @@ def ndyi(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndyi.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -601,7 +664,7 @@ def ri(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ri.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
@@ -638,7 +701,7 @@ def cri1(
 
     if output:
         # Update kwargs to reflect change in data type.
-        kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(cri1.astype(rasterio.float32), 1)
         typer.echo(output.absolute())
