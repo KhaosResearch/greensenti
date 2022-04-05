@@ -30,13 +30,12 @@ Options:
   --show-completion [bash|zsh|fish|powershell|pwsh]
                                   Show completion for the specified shell, to
                                   copy it or customize the installation.
-
   --help                          Show this message and exit.
 
 Commands:
-  compute-index  Compute a plethora of remote sensing indexes.
-  dhus           DHUS access and download.
-  raster         Raster operations.
+  band-arithmetic  Compute a plethora of remote sensing indexes.
+  dhus             DHUS access and download.
+  raster           Raster operations.
 ```
 
 ### Tutorial
@@ -46,19 +45,24 @@ Commands:
 ```console
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/ejido.geojson
 $ greensenti raster apply-mask --output B08_10m_masked.jp2 examples/B08_10m.jp2 geojson/ejido.geojson
-$ greensenti compute-index ndvi --help
-Usage: greensenti compute-index ndvi [OPTIONS] B4 B8
+$ greensenti band-arithmetic ndvi --help
+Usage: greensenti band-arithmetic ndvi [OPTIONS] B4 B8
 
-  Compute Normalized Difference Vegetation Index (NDVI).
-  
+  Compute Normalized Difference Vegetation Index (NDVI). Value ranges from -1
+  to 1. Negative values correspond to water. Values close to zero (-0.1 to
+  0.1) generally correspond to barren areas of rock, sand, or snow. Low,
+  positive values represent shrub and grassland (approximately 0.2 to 0.4),
+  while high values indicate temperate and tropical rainforests (values
+  approaching 1).
+
 Arguments:
-  B4  RED band (B04 for Sentinel-2, 10m)  [required]
-  B8  NIR band (B08 for Sentinel-2, 10m)  [required]
+  B4  RED - B04 band for Sentinel-2 (10m)  [required]
+  B8  NIR - B08 band for Sentinel-2 (10m)  [required]
 
 Options:
   --output PATH  Output file
   --help         Show this message and exit.
-$ greensenti compute-index ndvi --output ndvi.tif B04_10m_masked.jp2 B08_10m_masked.jp2
+$ greensenti band-arithmetic ndvi --output ndvi.tif B04_10m_masked.jp2 B08_10m_masked.jp2
 $ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tif
 ```
 
@@ -70,7 +74,7 @@ $ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tif
 $ greensenti raster apply-mask --output B02_10m_masked.jp2 examples/B02_10m.jp2 geojson/teatinos.geojson
 $ greensenti raster apply-mask --output B03_10m_masked.jp2 examples/B03_10m.jp2 geojson/teatinos.geojson
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/teatinos.geojson
-$ greensenti compute-index true-color --output true-color.tif B04_10m_masked.jp2 B03_10m_masked.jp2 B02_10m_masked.jp2
+$ greensenti band-arithmetic true-color --output true-color.tif B04_10m_masked.jp2 B03_10m_masked.jp2 B02_10m_masked.jp2
 $ greensenti raster transform-image --output true-color.png true-color.tif
 ```
 
