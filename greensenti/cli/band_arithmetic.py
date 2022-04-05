@@ -119,8 +119,7 @@ def cloud_mask(
     if output:
         with rasterio.open(output, "w", **dst_kwargs) as output_:
             output_.write(output_band)
-
-        print(f"exported to: {output.absolute()}")
+        typer.echo(output.absolute())
 
     return output_band    
 
