@@ -4,7 +4,7 @@ from typing import Optional
 import numpy as np
 import rasterio
 import typer
-from rasterio.warp import reproject, Resampling
+from rasterio.warp import Resampling, reproject
 
 # Allow division by zero.
 np.seterr(divide="ignore", invalid="ignore")
@@ -71,6 +71,7 @@ def cloud_cover_percentage(
 
     return cloud_cover_percentage
 
+
 @app.command()
 def cloud_mask(
     scl: Path = typer.Argument(..., exists=True, file_okay=True, help="SCL band for Sentinel-2 (20m)"),
@@ -87,41 +88,45 @@ def cloud_mask(
     :param scl: SCL band (20m).
     :param output: Path to output file.
     :return: Cloud cover mask.
-    """ 
-    scl_cloud_values = [3,8,9,10,11] # Classification band's cloud-related values
+    """
+    scl_cloud_values = [3, 8, 9, 10, 11]  # Classification band's cloud-related values
+    
     with rasterio.open(scl, "r") as cloud_mask_file:
         kwargs = cloud_mask_file.meta
         cloud_mask = cloud_mask_file.read(1)
 
     # Calculate cloud mask from Sentinel's cloud related values
-    cloud_mask = np.isin(cloud_mask,scl_cloud_values).astype(np.int8)
+    cloud_mask = np.isin(cloud_mask, scl_cloud_values).astype(np.int8)
 
     dst_kwargs = kwargs.copy()
-    dst_kwargs['driver'] = 'GTiff'
+    dst_kwargs["driver"] = "GTiff"
     # height and width is duplicated as input raster has 20m spatial resolution
-    dst_kwargs["height"] = int(kwargs["height"] * 2) 
+    dst_kwargs["height"] = int(kwargs["height"] * 2)
     dst_kwargs["width"] = int(kwargs["width"] * 2)
     dst_kwargs["transform"] = rasterio.Affine(10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5])
 
-    output_band = np.ndarray(shape=(dst_kwargs["height"],dst_kwargs["width"]), dtype=np.int8)
+    output_band = np.ndarray(shape=(dst_kwargs["height"], dst_kwargs["width"]), dtype=np.int8)
+    
     reproject(
         source=cloud_mask,
         destination=output_band,
-        src_transform=kwargs['transform'],
-        src_crs=kwargs['crs'],
-        dst_resolution=(dst_kwargs['width'], dst_kwargs['height']),
-        dst_transform=dst_kwargs['transform'],
-        dst_crs=dst_kwargs['crs'],
+        src_transform=kwargs["transform"],
+        src_crs=kwargs["crs"],
+        dst_resolution=(dst_kwargs["width"], dst_kwargs["height"]),
+        dst_transform=dst_kwargs["transform"],
+        dst_crs=dst_kwargs["crs"],
         resampling=Resampling.nearest,
     )
 
-    output_band = output_band.reshape((dst_kwargs['count'],*output_band.shape))
+    output_band = output_band.reshape((dst_kwargs["count"], *output_band.shape))
+    
     if output:
         with rasterio.open(output, "w", **dst_kwargs) as output_:
             output_.write(output_band)
         typer.echo(output.absolute())
 
-    return output_band    
+    return output_band
+
 
 @app.command()
 def true_color(
