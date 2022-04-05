@@ -4,8 +4,8 @@ import numpy as np
 from typer.testing import CliRunner
 
 from greensenti import app
-from greensenti.cli.compute_index import app as compute_index_group
-from greensenti.cli.compute_index import ndwi
+from greensenti.cli.band_arithmetic import app as compute_index_group
+from greensenti.cli.band_arithmetic import ndwi
 
 runner = CliRunner()
 
