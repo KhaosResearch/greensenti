@@ -1,24 +1,26 @@
-## greensenti _toolbox_
+# greensenti
 
 ![CI](https://github.com/benhid/greensenti/actions/workflows/ci.yml/badge.svg)
 ![Release](https://github.com/benhid/greensenti/actions/workflows/release.yml/badge.svg)
 <img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
-### Setup
+## Setup
 
-Using `pip`:
+#### From PyPI
 
-```console
+```shell
 $ pip install greensenti
 ```
 
-Using Poetry:
+#### From source code
 
-```console
+```shell
+# Requires Poetry to be installed. See https://python-poetry.org
+
 $ poetry install
 ```
 
-### Usage
+## Usage
 
 ```console
 $ poetry run greensenti --help
@@ -38,9 +40,7 @@ Commands:
   raster           Raster operations.
 ```
 
-### Tutorial
-
-##### Compute NDVI of El Ejido district (Málaga)
+#### Compute NDVI of El Ejido district (Málaga)
 
 ```console
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/ejido.geojson
@@ -68,7 +68,7 @@ $ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tif
 
 <img src="resources/ndvi.png" height="200" />
 
-##### Compute true color of Teatinos Campus (University of Málaga)
+#### Compute true color composite of Teatinos Campus (University of Málaga)
 
 ```console
 $ greensenti raster apply-mask --output B02_10m_masked.jp2 examples/B02_10m.jp2 geojson/teatinos.geojson
