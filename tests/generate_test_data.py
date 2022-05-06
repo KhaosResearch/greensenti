@@ -9,7 +9,7 @@ out_meta = {
     "width": 1,
     "height": 1,
     "count": 1,
-    "crs": CRS.from_epsg(32630),
+    "crs": CRS().from_epsg(32630),
     "transform": rasterio.Affine(10.0, 0.0, 365540.0, 0.0, -10.0, 4066920.0),
 }
 

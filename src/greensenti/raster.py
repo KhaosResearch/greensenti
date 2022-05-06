@@ -4,7 +4,6 @@ from typing import Optional
 import numpy as np
 import pyproj
 import rasterio
-import typer
 from matplotlib import pyplot as plt
 from rasterio import mask
 from rasterio.plot import adjust_band, reshape_as_image, reshape_as_raster
@@ -12,14 +11,12 @@ from sentinelsat import read_geojson
 from shapely.geometry import Polygon, shape
 from shapely.ops import transform
 
-app = typer.Typer()
 
-
-def crop_by_shape(filename: str, geom, outfile: str) -> None:
+def crop_by_shape(filename: Path, geom: Polygon, outfile: str) -> None:
     """
     Crop input file with a polygon mask.
 
-    :param filename: Input image.
+    :param filename: Path to input image.
     :param geom: Geometry.
     :param outfile: Path to output file.
     """
@@ -36,7 +33,7 @@ def crop_by_shape(filename: str, geom, outfile: str) -> None:
         dest.write(out_image)
 
 
-def project_shape(geom, scs="epsg:4326", dcs="epsg:32630") -> Polygon:
+def project_shape(geom: Polygon, scs="epsg:4326", dcs="epsg:32630") -> Polygon:
     """
     Project a shape from a source coordinate system to another one.
     The source coordinate system can be obtain with `rasterio` as illustrated next:
@@ -61,7 +58,7 @@ def project_shape(geom, scs="epsg:4326", dcs="epsg:32630") -> Polygon:
     return transform(project, shape(geom))
 
 
-def save_as_img(raster: np.array, output: str, **kwargs) -> str:
+def save_as_img(raster: np.array, output: Path, **kwargs) -> Path:
     """
     Save raster image to file.
     """
@@ -79,14 +76,17 @@ def save_as_img(raster: np.array, output: str, **kwargs) -> str:
     return output
 
 
-@app.command()
 def transform_image(
-    band: Path = typer.Argument(..., exists=True, file_okay=True, help="TIF image"),
-    output: Path = typer.Option(..., file_okay=True, help="Output file"),
-    color_map: Optional[str] = typer.Option(None, "--cmap", help="Color map"),
+    band: Path,
+    color_map: Optional[str],
+    output: Path,
 ) -> Path:
     """
     Transform raster to image (see full list of accepted drivers at https://gdal.org/drivers/raster/index.html).
+
+    :param band: TIF band image.
+    :param color_map: Color map to apply.
+    :param output: Path to output file.
     """
     with rasterio.open(band) as b:
         source = b.read().astype(np.float32)
@@ -104,20 +104,18 @@ def transform_image(
             arr[ii] = adjust_band(band, kind="linear")
         arr = reshape_as_image(arr)
 
-    save_as_img(raster=arr, output=str(output), cmap=color_map)
+    save_as_img(raster=arr, output=output, cmap=color_map)
 
     return output
 
 
-@app.command()
-def apply_mask(
-    filename: Path = typer.Argument(..., exists=True, file_okay=True, help="Path to input file"),
-    geojson: Path = typer.Argument(..., file_okay=True),
-    output: Path = typer.Option(..., help="Path to output file"),
-) -> Path:
+def apply_mask(filename: Path, geojson: Path, output: Path = Path(".")) -> Path:
     """
     Crop image data (jp2 imagery file) by shape.
 
+    :param filename: Path to input file.
+    :param geojson: Geometry.
+    :param output: Path to output file.
     :return: Path to output file.
     """
     # Make sure the output dir exists.
@@ -130,6 +128,6 @@ def apply_mask(
     shape = project_shape(geojson["features"][0]["geometry"])
 
     # Mask product based on location.
-    crop_by_shape(filename=str(filename), outfile=str(output), geom=shape)
+    crop_by_shape(filename=filename, outfile=str(output), geom=shape)
 
     return output

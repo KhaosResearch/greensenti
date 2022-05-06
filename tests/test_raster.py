@@ -1,6 +1,6 @@
 from shapely.geometry import Polygon
 
-from greensenti.cli.raster import project_shape
+from greensenti.raster import project_shape
 
 
 def test_projected_shape_is_valid_with_default_arguments():
