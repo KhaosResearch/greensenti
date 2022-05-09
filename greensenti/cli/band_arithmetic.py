@@ -90,7 +90,7 @@ def cloud_mask(
     :return: Cloud cover mask.
     """
     scl_cloud_values = [3, 8, 9, 10, 11]  # Classification band's cloud-related values
-    
+
     with rasterio.open(scl, "r") as cloud_mask_file:
         kwargs = cloud_mask_file.meta
         cloud_mask = cloud_mask_file.read(1)
@@ -106,7 +106,7 @@ def cloud_mask(
     dst_kwargs["transform"] = rasterio.Affine(10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5])
 
     output_band = np.ndarray(shape=(dst_kwargs["height"], dst_kwargs["width"]), dtype=np.int8)
-    
+
     reproject(
         source=cloud_mask,
         destination=output_band,
@@ -119,7 +119,7 @@ def cloud_mask(
     )
 
     output_band = output_band.reshape((dst_kwargs["count"], *output_band.shape))
-    
+
     if output:
         with rasterio.open(output, "w", **dst_kwargs) as output_:
             output_.write(output_band)
@@ -711,6 +711,8 @@ def cri1(
         typer.echo(output.absolute())
 
     return cri1
+
+
 @app.command()
 def bsi(
     b2: Path = typer.Argument(..., exists=True, file_okay=True, help="BLUE - B02 band for Sentinel-2 (10m)"),
@@ -720,8 +722,7 @@ def bsi(
     output: Optional[Path] = typer.Option(None, help="Output file"),
 ) -> np.array:
     """
-    Bare Soil Index (BSI) is a numerical indicator to capture soil variations. 
-    
+    Bare Soil Index (BSI) is a numerical indicator to capture soil variations.
 
     ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
      This value is used to define which pixels should be masked. See also:
