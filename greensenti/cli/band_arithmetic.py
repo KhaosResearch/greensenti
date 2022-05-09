@@ -90,7 +90,7 @@ def cloud_mask(
     :return: Cloud cover mask.
     """
     scl_cloud_values = [3, 8, 9, 10, 11]  # Classification band's cloud-related values
-    
+
     with rasterio.open(scl, "r") as cloud_mask_file:
         kwargs = cloud_mask_file.meta
         cloud_mask = cloud_mask_file.read(1)
@@ -106,7 +106,7 @@ def cloud_mask(
     dst_kwargs["transform"] = rasterio.Affine(10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5])
 
     output_band = np.ndarray(shape=(dst_kwargs["height"], dst_kwargs["width"]), dtype=np.int8)
-    
+
     reproject(
         source=cloud_mask,
         destination=output_band,
@@ -119,7 +119,7 @@ def cloud_mask(
     )
 
     output_band = output_band.reshape((dst_kwargs["count"], *output_band.shape))
-    
+
     if output:
         with rasterio.open(output, "w", **dst_kwargs) as output_:
             output_.write(output_band)
@@ -711,3 +711,59 @@ def cri1(
         typer.echo(output.absolute())
 
     return cri1
+
+
+@app.command()
+def bsi(
+    b2: Path = typer.Argument(..., exists=True, file_okay=True, help="BLUE - B02 band for Sentinel-2 (10m)"),
+    b4: Path = typer.Argument(..., exists=True, file_okay=True, help="RED - B04 band for Sentinel-2 (20m)"),
+    b8: Path = typer.Argument(..., exists=True, file_okay=True, help="NIR - B08 band for Sentinel-2 (10m)"),
+    b11: Path = typer.Argument(..., exists=True, file_okay=True, help="SWIR - B11 band for Sentinel-2 (20m)"),
+    output: Optional[Path] = typer.Option(None, help="Output file"),
+) -> np.array:
+    """
+    Bare Soil Index (BSI) is a numerical indicator to capture soil variations.
+
+    ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
+     This value is used to define which pixels should be masked. See also:
+
+    * https://docs.digitalearthafrica.org/en/latest/data_specs/Sentinel-2_Level-2A_specs.html
+
+    ..note:: https://eos.com/index-stack/
+
+    :param b2: BLUE band (B02 for Sentinel-2, 10m).
+    :param b4: RED band (B04 for Sentinel-2, 20m).
+    :param b8: NIR band (B08 for Sentinel-2, 10m).
+    :param b11: SWIR band (B11 for Sentinel-2, 20m).
+    :param output: Path to output file.
+    :return: BSI index.
+    """
+    with rasterio.open(b2) as band:
+        band_2 = band.read(1).astype(np.float32)
+        band_2[band_2 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b4) as band:
+        band_4 = band.read(1).astype(np.float32)
+        band_4[band_4 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b8) as band:
+        band_8 = band.read(1).astype(np.float32)
+        band_8[band_8 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b11) as band:
+        band_11 = band.read(1).astype(np.float32)
+        band_11[band_11 == 0] = np.nan
+
+    bsi = ((band_11 + band_4) - (band_8 + band_2)) / ((band_11 + band_4) + (band_8 + band_2))
+
+    bsi[bsi == np.inf] = np.nan
+    bsi[bsi == -np.inf] = np.nan
+
+    if output:
+        # Update kwargs to reflect change in data type.
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(bsi.astype(rasterio.float32), 1)
+        typer.echo(output.absolute())
+
+    return bsi
