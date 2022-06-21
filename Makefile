@@ -1,24 +1,23 @@
 install:
-	@poetry install
+	@python setup.py install
+
+version:
+	@python -V
 
 clean:
-	@rm -rf build dist .eggs *.egg-info
+	@rm -rf build dist .eggs src/*.egg-info
 	@find . -type d -name '.mypy_cache' -exec rm -rf {} +
 	@find . -type d -name '__pycache__' -exec rm -rf {} +
+	@find . -type d -name '.pytest_cache' -exec rm -rf {} +
 
 black: clean
-	@poetry run isort --profile black greensenti/ tests/ workflow.py
-	@poetry run black greensenti/ tests/ workflow.py
+	@python -m isort --profile black src/ tests/
+	@python -m black src/ tests/
 
 lint:
-	@poetry run mypy greensenti/ tests/
-
-release:
-	@echo Bump version to v$$(poetry version --short)
-	@git tag v$$(poetry version --short)
-	@git push origin v$$(poetry version --short)
+	@python -m mypy greensenti/ tests/
 
 .PHONY: tests
 
 tests:
-	@poetry run pytest -s tests/
+	@python -m pytest -s tests/

@@ -1,47 +1,3 @@
-[tool.poetry]
-name = "greensenti"
-version = "0.3.0"
-readme = "README.md"
-description = "README"
-homepage = "https://github.com/benhid/greensenti/"
-repository = "https://github.com/benhid/greensenti/"
-authors = ["Antonio Benítez Hidalgo <antoniobenitezhid@gmail.com>"]
-classifiers=[
-    "Operating System :: OS Independent",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python",
-    "Typing :: Typed",
-    "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: MIT License",
-]
-include = [
-    "LICENSE"
-]
-
-[tool.poetry.dependencies]
-python = "^3.8"
-pydantic = {extras = ["dotenv"], version = "^1.9.0"}
-typer = "^0.4.0"
-sentinelsat = "^1.1.1"
-Shapely = "^1.8.0"
-pandas = "^1.4.0"
-pyproj = "^3.3.0"
-rasterio = "^1.2.10"
-numpy = "^1.22.2"
-matplotlib = "^3.5.1"
-simplejson = "^3.17.6"
-
-[tool.poetry.dev-dependencies]
-black = "^22.1.0"
-mypy = "^0.931"
-isort = "^5.10.1"
-pytest = "^7.0.0"
-
-[tool.poetry.scripts]
-greensenti = "greensenti.__main__:app"
-
 [tool.black]
 line-length = 120
 include = '\.pyi?$'
@@ -49,15 +5,9 @@ exclude = '''
 /(
     \.git
   | \.mypy_cache
-  | \.tox
   | \.venv
   | _build
-  | buck-out
   | build
   | dist
 )/
 '''
-
-[build-system]
-requires = ["poetry>=0.12"]
-build-backend = "poetry.masonry.api"

@@ -2,31 +2,28 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-import typer
 from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 
-from greensenti.settings import BaseSettings
 
-app = typer.Typer()
-settings = BaseSettings()
-
-
-@app.command()
 def download(
-    geojson: Path = typer.Argument(..., exists=True, file_okay=True, help="GeoJSON"),
-    from_date: datetime = typer.Argument(..., formats=["%Y-%m-%d"], help="From date (begin date)"),
-    to_date: datetime = typer.Argument(..., formats=["%Y-%m-%d"], help="To date (end date)"),
-    output: Path = typer.Option(Path("."), help="Output folder"),
-    skip_unzip: bool = typer.Option(False, help="Skip product unzip."),
+    dhus_username: str,
+    dhus_password: str,
+    dhus_host: str,
+    geojson: Path,
+    from_date: datetime,
+    to_date: datetime,
+    skip_unzip: bool = False,
+    *,
+    output: Path = Path("."),
 ):
     """
-    Downloads products from DHUS.
+    Downloads products from D-HUS.
 
     :param geojson: GeoJSON file with product geometries.
-    :param from_date: From date (begin date).
-    :param to_date: To date (end date).
+    :param from_date: From date %Y-%m-%d (begin date).
+    :param to_date: To date %Y-%m-%d (end date).
     :param output: Output folder.
-    :param skip_unzip: Skip product unzip.
+    :param skip_unzip: Whether to skip product unzip.
     :return:
     """
     # Load geojson file* and download products for an interval of dates.
@@ -34,9 +31,7 @@ def download(
     geojson = read_geojson(geojson)
     footprint = geojson_to_wkt(geojson)
 
-    sentinel_api = SentinelAPI(
-        settings.dhus_username, settings.dhus_password, settings.dhus_host, show_progressbars=False
-    )
+    sentinel_api = SentinelAPI(dhus_username, dhus_password, dhus_host, show_progressbars=False)
 
     typer.echo("Searching for products in scene")
 
@@ -55,22 +50,22 @@ def download(
     products_df = sentinel_api.to_dataframe(products)
     ids = products_df.index
 
-    typer.echo(f"Found {len(ids)} scenes between {from_date} and {to_date}")
+    print(f"Found {len(ids)} scenes between {from_date} and {to_date}")
 
     # Download products.
     product_infos, triggered, failed_downloads = sentinel_api.download_all(
-        ids, output, max_attempts=10, n_concurrent_dl=1, lta_retry_delay=600
+        ids, str(output), max_attempts=10, n_concurrent_dl=1, lta_retry_delay=600
     )
 
-    typer.echo(f"Success: {len(product_infos)}")
-    typer.echo(f"Triggered: {len(triggered)}")
-    typer.echo(f"Failed: {len(failed_downloads)}")
+    print(f"Success: {len(product_infos)}")
+    print(f"Triggered: {len(triggered)}")
+    print(f"Failed: {len(failed_downloads)}")
 
     if not skip_unzip:
         for product_id, product_info in product_infos.items():
             title = product_info["title"]
 
-            typer.echo(f"Unzipping {title}")
+            print(f"Unzipping {title}")
 
             # Make sure the output folder exists.
             data_dir = Path(output, title)
@@ -79,7 +74,6 @@ def download(
             zip_filename = Path(output, title + ".zip")
 
             if Path(data_dir, title).is_dir():
-                typer.echo(f"{title} already unzipped")
                 continue
 
             with zipfile.ZipFile(zip_filename, "r") as zip_file:

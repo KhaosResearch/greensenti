@@ -6,38 +6,36 @@
 
 ## Setup
 
-#### From PyPI
+From PyPI:
 
-```shell
+```console
 $ pip install greensenti
 ```
 
-#### From source code
+From source code:
 
-```shell
-# Requires Poetry to be installed. See https://python-poetry.org
-
-$ poetry install
+```console
+$ python setup.py install
 ```
 
 ## Usage
 
+Run with `-h` / `--help` to display help for the client itself or for any specific command:
+
 ```console
-$ poetry run greensenti --help
-Usage: greensenti [OPTIONS] COMMAND [ARGS]...
+$ greensenti --help
+NAME
+    greensenti
 
-Options:
-  --install-completion [bash|zsh|fish|powershell|pwsh]
-                                  Install completion for the specified shell.
-  --show-completion [bash|zsh|fish|powershell|pwsh]
-                                  Show completion for the specified shell, to
-                                  copy it or customize the installation.
-  --help                          Show this message and exit.
+SYNOPSIS
+    greensenti GROUP
 
-Commands:
-  band-arithmetic  Compute a plethora of remote sensing indexes.
-  dhus             DHUS access and download.
-  raster           Raster operations.
+GROUPS
+    GROUP is one of the following:
+
+     band-arithmetic
+
+     raster
 ```
 
 #### Compute NDVI of El Ejido district (Málaga)
@@ -45,23 +43,6 @@ Commands:
 ```console
 $ greensenti raster apply-mask --output B04_10m_masked.jp2 examples/B04_10m.jp2 geojson/ejido.geojson
 $ greensenti raster apply-mask --output B08_10m_masked.jp2 examples/B08_10m.jp2 geojson/ejido.geojson
-$ greensenti band-arithmetic ndvi --help
-Usage: greensenti band-arithmetic ndvi [OPTIONS] B4 B8
-
-  Compute Normalized Difference Vegetation Index (NDVI). Value ranges from -1
-  to 1. Negative values correspond to water. Values close to zero (-0.1 to
-  0.1) generally correspond to barren areas of rock, sand, or snow. Low,
-  positive values represent shrub and grassland (approximately 0.2 to 0.4),
-  while high values indicate temperate and tropical rainforests (values
-  approaching 1).
-
-Arguments:
-  B4  RED - B04 band for Sentinel-2 (10m)  [required]
-  B8  NIR - B08 band for Sentinel-2 (10m)  [required]
-
-Options:
-  --output PATH  Output file
-  --help         Show this message and exit.
 $ greensenti band-arithmetic ndvi --output ndvi.tif B04_10m_masked.jp2 B08_10m_masked.jp2
 $ greensenti raster transform-image --output ndvi.png --cmap RdYlBu ndvi.tif
 ```
@@ -79,3 +60,11 @@ $ greensenti raster transform-image --output true-color.png true-color.tif
 ```
 
 <img src="resources/true-color.png" height="200" />
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for details.
+
+## License
+
+This project is licensed under the MIT license. See the [LICENSE](LICENSE) file for more info.
