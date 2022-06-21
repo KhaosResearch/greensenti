@@ -674,3 +674,51 @@ def cri1(
             f.write(cri1.astype(rasterio.float32), 1)
 
     return cri1
+
+
+@app.command()
+def bsi(
+    b2: Path,
+    b4: Path,
+    b8: Path,
+    b11: Path,
+    *,
+    output: Optional[Path],
+) -> np.array:
+    """
+    Bare Soil Index (BSI) is a numerical indicator to capture soil variations.
+
+    :param b2: BLUE band (B02 for Sentinel-2 (10m)).
+    :param b4: RED band (B04 for Sentinel-2 (20m)).
+    :param b8: NIR band (B08 for Sentinel-2 (10m)).
+    :param b11: SWIR band (B11 for Sentinel-2 (20m)).
+    :param output: Path to output file.
+    :return: BSI index.
+    """
+    with rasterio.open(b2) as band:
+        band_2 = band.read(1).astype(np.float32)
+        band_2[band_2 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b4) as band:
+        band_4 = band.read(1).astype(np.float32)
+        band_4[band_4 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b8) as band:
+        band_8 = band.read(1).astype(np.float32)
+        band_8[band_8 == 0] = np.nan
+        kwargs = band.meta
+    with rasterio.open(b11) as band:
+        band_11 = band.read(1).astype(np.float32)
+        band_11[band_11 == 0] = np.nan
+
+    bsi = ((band_11 + band_4) - (band_8 + band_2)) / ((band_11 + band_4) + (band_8 + band_2))
+
+    bsi[bsi == np.inf] = np.nan
+    bsi[bsi == -np.inf] = np.nan
+
+    if output:
+        kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
+        with rasterio.open(output, "w", **kwargs) as gtif:
+            gtif.write(bsi.astype(rasterio.float32), 1)
+
+    return bsi

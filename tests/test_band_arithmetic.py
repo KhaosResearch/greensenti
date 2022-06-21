@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 from greensenti.band_arithmetic import *
 
@@ -113,3 +114,9 @@ def test_ri():
 def test_true_color():
     tc = true_color(r=Path("tests/data/B1.jp2"), g=Path("tests/data/B2.jp2"), b=Path("tests/data/B3.jp2"), output=None)
     assert np.array_equal(tc, np.array([[[85, 170, 255]]]))
+
+
+def test_bsi():
+    band = bsi(b2=Path("tests/data/B1.jp2"), b4=Path("tests/data/B2.jp2"), b8=Path("tests/data/B3.jp2"), b11=Path("tests/data/B3.jp2"), output=None)
+    value = np.nanmean(band)
+    assert pytest.approx(value, 0.000001) == 0.11111111
