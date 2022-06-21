@@ -17,11 +17,6 @@ black: clean
 lint:
 	@python -m mypy greensenti/ tests/
 
-release:
-	@echo Bump version to v$$(poetry version --short)
-	@git tag v$$(poetry version --short)
-	@git push origin v$$(poetry version --short)
-
 .PHONY: tests
 
 tests:
