@@ -675,8 +675,6 @@ def cri1(
 
     return cri1
 
-
-@app.command()
 def bsi(
     b2: Path,
     b4: Path,
