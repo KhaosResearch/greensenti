@@ -131,3 +131,36 @@ def apply_mask(filename: Path, geojson: Path, output: Path = Path(".")) -> Path:
     crop_by_shape(filename=filename, outfile=str(output), geom=shape)
 
     return output
+
+def rescale_band(band: np.array, kwargs: np.array) -> np.array:
+    img_resolution = kwargs["transform"][0]
+    scale_factor = img_resolution / 10
+    # Scale the image to a resolution of 10m per pixel
+    if img_resolution != 10:
+        new_kwargs = kwargs.copy()
+        new_kwargs["height"] = int(kwargs["height"] * scale_factor)
+        new_kwargs["width"] = int(kwargs["width"] * scale_factor)
+        new_kwargs["transform"] = rasterio.Affine(
+            10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5]
+        )
+
+        rescaled_raster = np.ndarray(
+            shape=(new_kwargs["height"], new_kwargs["width"]), dtype=np.float32
+        )
+
+        reproject(
+            source=band,
+            destination=rescaled_raster,
+            src_transform=kwargs["transform"],
+            src_crs=kwargs["crs"],
+            dst_resolution=(new_kwargs["width"], new_kwargs["height"]),
+            dst_transform=new_kwargs["transform"],
+            dst_crs=new_kwargs["crs"],
+            resampling=Resampling.nearest,
+        )
+        band = rescaled_raster.reshape(
+            (new_kwargs["count"], *rescaled_raster.shape)
+        )
+        kwargs = new_kwargs
+
+    return band
