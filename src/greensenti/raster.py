@@ -7,6 +7,7 @@ import rasterio
 from matplotlib import pyplot as plt
 from rasterio import mask
 from rasterio.plot import adjust_band, reshape_as_image, reshape_as_raster
+from rasterio.warp import Resampling, reproject
 from sentinelsat import read_geojson
 from shapely.geometry import Polygon, shape
 from shapely.ops import transform
@@ -132,7 +133,15 @@ def apply_mask(filename: Path, geojson: Path, output: Path = Path(".")) -> Path:
 
     return output
 
+
 def rescale_band(band: np.array, kwargs: np.array) -> np.array:
+    """
+    Rescale band image data to 10 meters per pixel resolution.
+
+    :param band: Band image array.
+    :param kwargs: Band image metadata.
+    :return: Band rescaled.
+    """
     img_resolution = kwargs["transform"][0]
     scale_factor = img_resolution / 10
     # Scale the image to a resolution of 10m per pixel
@@ -140,13 +149,9 @@ def rescale_band(band: np.array, kwargs: np.array) -> np.array:
         new_kwargs = kwargs.copy()
         new_kwargs["height"] = int(kwargs["height"] * scale_factor)
         new_kwargs["width"] = int(kwargs["width"] * scale_factor)
-        new_kwargs["transform"] = rasterio.Affine(
-            10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5]
-        )
+        new_kwargs["transform"] = rasterio.Affine(10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5])
 
-        rescaled_raster = np.ndarray(
-            shape=(new_kwargs["height"], new_kwargs["width"]), dtype=np.float32
-        )
+        rescaled_raster = np.ndarray(shape=(new_kwargs["height"], new_kwargs["width"]), dtype=np.float32)
 
         reproject(
             source=band,
@@ -158,9 +163,7 @@ def rescale_band(band: np.array, kwargs: np.array) -> np.array:
             dst_crs=new_kwargs["crs"],
             resampling=Resampling.nearest,
         )
-        band = rescaled_raster.reshape(
-            (new_kwargs["count"], *rescaled_raster.shape)
-        )
+        band = rescaled_raster.reshape((new_kwargs["count"], *rescaled_raster.shape))
         kwargs = new_kwargs
 
     return band
