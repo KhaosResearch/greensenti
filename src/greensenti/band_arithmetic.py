@@ -677,6 +677,7 @@ def cri1(
 
     return cri1
 
+
 def bsi(
     b2: Path,
     b4: Path,
@@ -700,11 +701,9 @@ def bsi(
         band_2[band_2 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b4) as band:
-        band_4_20m = band.read(1).astype(np.float32)
-        kwargs_4 = band.meta
-        band_4 = rescale_band(band_4_20m, kwargs_4)
-        band_4[band_4 == 0] = np.nan
+        band_4 = band.read(1).astype(np.float32)
         kwargs = band.meta
+        band_4[band_4 == 0] = np.nan
     with rasterio.open(b8) as band:
         band_8 = band.read(1).astype(np.float32)
         band_8[band_8 == 0] = np.nan
@@ -723,6 +722,6 @@ def bsi(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
-            gtif.write(bsi.astype(rasterio.float32), 1)
+            gtif.write(bsi.astype(rasterio.float32))
 
     return bsi
