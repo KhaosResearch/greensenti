@@ -120,7 +120,7 @@ def cloud_mask(
 
     if output:
         with rasterio.open(output, "w", **dst_kwargs) as f:
-            f.write(output_band)
+            f.write(output_band, 1)
 
     return output_band
 
@@ -722,6 +722,6 @@ def bsi(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
-            gtif.write(bsi.astype(rasterio.float32))
+            gtif.write(bsi.astype(rasterio.float32), 1)
 
     return bsi
