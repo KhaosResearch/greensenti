@@ -511,8 +511,8 @@ def bri(
         kwargs = band.meta
     with rasterio.open(b5) as band:
         band_5_20m = band.read(1).astype(np.float32)
-        kwargs_5 = band.meta
-        band_5 = rescale_band(band_5_20m, kwargs_5)
+        kwargs_5_20m = band.meta
+        band_5, _ = rescale_band(band_5_20m, kwargs_5_20m)
         band_5[band_5 == 0] = np.nan
     with rasterio.open(b8) as band:
         band_8 = band.read(1).astype(np.float32)
@@ -710,8 +710,8 @@ def bsi(
         kwargs = band.meta
     with rasterio.open(b11) as band:
         band_11_20m = band.read(1).astype(np.float32)
-        kwargs_11 = band.meta
-        band_11 = rescale_band(band_11_20m, kwargs_11)
+        kwargs_11_20m = band.meta
+        band_11, _ = rescale_band(band_11_20m, kwargs_11_20m)
         band_11[band_11 == 0] = np.nan
 
     bsi = ((band_11 + band_4) - (band_8 + band_2)) / ((band_11 + band_4) + (band_8 + band_2))

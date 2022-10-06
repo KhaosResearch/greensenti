@@ -134,7 +134,7 @@ def apply_mask(filename: Path, geojson: Path, output: Path = Path(".")) -> Path:
     return output
 
 
-def rescale_band(band: np.array, kwargs: np.array) -> np.array:
+def rescale_band(band: np.array, kwargs: dict) -> tuple[np.array, dict]:
     """
     Rescale band image data to 10 meters per pixel resolution.
 
@@ -149,9 +149,9 @@ def rescale_band(band: np.array, kwargs: np.array) -> np.array:
         new_kwargs = kwargs.copy()
         new_kwargs["height"] = int(kwargs["height"] * scale_factor)
         new_kwargs["width"] = int(kwargs["width"] * scale_factor)
-        new_kwargs["transform"] = rasterio.Affine(10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5])
+        new_kwargs["transform"] = rasterio.Affine(10, kwargs["transform"][1], kwargs["transform"][2], kwargs["transform"][3], -10, kwargs["transform"][5])
 
-        rescaled_raster = np.ndarray(shape=(new_kwargs["height"], new_kwargs["width"]), dtype=np.float32)
+        rescaled_raster = np.ndarray(shape=(kwargs["count"], new_kwargs["height"], new_kwargs["width"]), dtype=np.float32)
 
         reproject(
             source=band,
@@ -163,7 +163,7 @@ def rescale_band(band: np.array, kwargs: np.array) -> np.array:
             dst_crs=new_kwargs["crs"],
             resampling=Resampling.nearest,
         )
-        band = rescaled_raster.reshape((new_kwargs["count"], *rescaled_raster.shape))
+        band = rescaled_raster
         kwargs = new_kwargs
 
-    return band
+    return band, kwargs
