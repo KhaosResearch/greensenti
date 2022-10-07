@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 
 import numpy as np
 import pyproj
@@ -134,7 +134,7 @@ def apply_mask(filename: Path, geojson: Path, output: Path = Path(".")) -> Path:
     return output
 
 
-def rescale_band(band: np.array, kwargs: dict) -> tuple[np.array, dict]:
+def rescale_band(band: np.array, kwargs: dict) -> Tuple[np.array, dict]:
     """
     Rescale band image data to 10 meters per pixel resolution.
 
