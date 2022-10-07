@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Optional
+from greensenti.raster import rescale_band
 
 import numpy as np
 import rasterio
@@ -119,7 +120,7 @@ def cloud_mask(
 
     if output:
         with rasterio.open(output, "w", **dst_kwargs) as f:
-            f.write(output_band)
+            f.write(output_band, 1)
 
     return output_band
 
@@ -510,7 +511,8 @@ def bri(
         kwargs = band.meta
     with rasterio.open(b5) as band:
         band_5_20m = band.read(1).astype(np.float32)
-        band_5 = np.repeat(np.repeat(band_5_20m, 2, axis=0), 2, axis=1)
+        kwargs_5_20m = band.meta
+        band_5, _ = rescale_band(band_5_20m, kwargs_5_20m)
         band_5[band_5 == 0] = np.nan
     with rasterio.open(b8) as band:
         band_8 = band.read(1).astype(np.float32)
@@ -675,6 +677,7 @@ def cri1(
 
     return cri1
 
+
 def bsi(
     b2: Path,
     b4: Path,
@@ -699,14 +702,16 @@ def bsi(
         kwargs = band.meta
     with rasterio.open(b4) as band:
         band_4 = band.read(1).astype(np.float32)
-        band_4[band_4 == 0] = np.nan
         kwargs = band.meta
+        band_4[band_4 == 0] = np.nan
     with rasterio.open(b8) as band:
         band_8 = band.read(1).astype(np.float32)
         band_8[band_8 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b11) as band:
-        band_11 = band.read(1).astype(np.float32)
+        band_11_20m = band.read(1).astype(np.float32)
+        kwargs_11_20m = band.meta
+        band_11, _ = rescale_band(band_11_20m, kwargs_11_20m)
         band_11[band_11 == 0] = np.nan
 
     bsi = ((band_11 + band_4) - (band_8 + band_2)) / ((band_11 + band_4) + (band_8 + band_2))
