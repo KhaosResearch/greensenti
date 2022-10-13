@@ -149,9 +149,13 @@ def rescale_band(band: np.array, kwargs: dict) -> Tuple[np.array, dict]:
         new_kwargs = kwargs.copy()
         new_kwargs["height"] = int(kwargs["height"] * scale_factor)
         new_kwargs["width"] = int(kwargs["width"] * scale_factor)
-        new_kwargs["transform"] = rasterio.Affine(10, kwargs["transform"][1], kwargs["transform"][2], kwargs["transform"][3], -10, kwargs["transform"][5])
+        new_kwargs["transform"] = rasterio.Affine(
+            10, kwargs["transform"][1], kwargs["transform"][2], kwargs["transform"][3], -10, kwargs["transform"][5]
+        )
 
-        rescaled_raster = np.ndarray(shape=(kwargs["count"], new_kwargs["height"], new_kwargs["width"]), dtype=np.float32)
+        rescaled_raster = np.ndarray(
+            shape=(kwargs["count"], new_kwargs["height"], new_kwargs["width"]), dtype=np.float32
+        )
 
         reproject(
             source=band,

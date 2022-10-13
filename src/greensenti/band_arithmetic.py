@@ -1,10 +1,11 @@
 from pathlib import Path
 from typing import Optional
-from greensenti.raster import rescale_band
 
 import numpy as np
 import rasterio
 from rasterio.warp import Resampling, reproject
+
+from greensenti.raster import rescale_band
 
 # Allow division by zero.
 np.seterr(divide="ignore", invalid="ignore")
@@ -96,7 +97,7 @@ def cloud_mask(
     cloud_mask = np.isin(cloud_mask, scl_cloud_values).astype(np.int8)
 
     cloud_mask_10m, output_kwargs = rescale_band(cloud_mask, kwargs)
- 
+
     if output:
         with rasterio.open(output, "w", **output_kwargs) as f:
             f.write(cloud_mask_10m, 1)
