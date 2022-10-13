@@ -95,34 +95,13 @@ def cloud_mask(
     # Calculate cloud mask from Sentinel's cloud related values.
     cloud_mask = np.isin(cloud_mask, scl_cloud_values).astype(np.int8)
 
-    dst_kwargs = kwargs.copy()
-    dst_kwargs["driver"] = "GTiff"
-
-    # Height and width is duplicated as input raster has 20m spatial resolution.
-    dst_kwargs["height"] = int(kwargs["height"] * 2)
-    dst_kwargs["width"] = int(kwargs["width"] * 2)
-    dst_kwargs["transform"] = rasterio.Affine(10, 0.0, kwargs["transform"][2], 0.0, -10, kwargs["transform"][5])
-
-    output_band = np.ndarray(shape=(dst_kwargs["height"], dst_kwargs["width"]), dtype=np.int8)
-
-    reproject(
-        source=cloud_mask,
-        destination=output_band,
-        src_transform=kwargs["transform"],
-        src_crs=kwargs["crs"],
-        dst_resolution=(dst_kwargs["width"], dst_kwargs["height"]),
-        dst_transform=dst_kwargs["transform"],
-        dst_crs=dst_kwargs["crs"],
-        resampling=Resampling.nearest,
-    )
-
-    output_band = output_band.reshape((dst_kwargs["count"], *output_band.shape))
-
+    cloud_mask_10m, output_kwargs = rescale_band(cloud_mask, kwargs)
+ 
     if output:
-        with rasterio.open(output, "w", **dst_kwargs) as f:
-            f.write(output_band, 1)
+        with rasterio.open(output, "w", **output_kwargs) as f:
+            f.write(cloud_mask_10m, 1)
 
-    return output_band
+    return cloud_mask_10m
 
 
 def true_color(
