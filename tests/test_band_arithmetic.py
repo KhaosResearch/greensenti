@@ -113,7 +113,7 @@ def test_ri():
 
 def test_true_color():
     tc = true_color(r=Path("tests/data/B1.jp2"), g=Path("tests/data/B2.jp2"), b=Path("tests/data/B3.jp2"), output=None)
-    assert np.array_equal(tc, np.array([[[85, 170, 255]]]))
+    assert np.array_equal(tc, np.array([[[85]], [[170]], [[255]]]))
 
 
 def test_bsi():

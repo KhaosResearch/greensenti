@@ -136,10 +136,10 @@ def true_color(
 
     # Create true color image.
     # Adjust each band by the min-max so it will plot as RGB.
-    rgb_image = np.concatenate((red_band, green_band, blue_band), axis=0)
+    rgb_image_raw = np.concatenate((red_band, green_band, blue_band), axis=0)
 
-    max_pixel_value = rgb_image.max()
-    rgb_image = np.multiply(rgb_image, 255.0)
+    max_pixel_value = rgb_image_raw.max()
+    rgb_image = np.multiply(rgb_image_raw, 255.0)
     rgb_image = np.divide(rgb_image, max_pixel_value)
     rgb_image = rgb_image.astype(np.uint8)
 
@@ -147,9 +147,7 @@ def true_color(
         # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=0, count=3)
         with rasterio.open(output, "w", **kwargs) as rgb:
-            rgb.write(red_band.astype(rasterio.float32), 1)
-            rgb.write(green_band.astype(rasterio.float32), 2)
-            rgb.write(blue_band.astype(rasterio.float32), 3)
+            rgb.write(rgb_image_raw)
 
     return rgb_image
 
