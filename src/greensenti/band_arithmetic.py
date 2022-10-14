@@ -37,14 +37,14 @@ def cloud_cover_percentage(
     :return: Cloud cover percentage.
     """
     with rasterio.open(b3) as green:
-        GREEN = green.read(1).astype(np.float32)
+        GREEN = green.read().astype(np.float32)
         GREEN[GREEN == 0] = np.nan
         kwargs = green.meta
     with rasterio.open(b4) as red:
-        RED = red.read(1).astype(np.float32)
+        RED = red.read().astype(np.float32)
         RED[RED == 0] = np.nan
     with rasterio.open(b11) as swir11:
-        SWIR11 = swir11.read(1).astype(np.float32)
+        SWIR11 = swir11.read().astype(np.float32)
         SWIR11[SWIR11 == 0] = np.nan
 
     # Convert to surface reflectance.
@@ -65,7 +65,7 @@ def cloud_cover_percentage(
         # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(is_cloud.astype(rasterio.float32), 1)
+            f.write(is_cloud.astype(rasterio.float32))
 
     return cloud_cover_percentage
 
@@ -91,7 +91,7 @@ def cloud_mask(
 
     with rasterio.open(scl, "r") as cloud_mask_file:
         kwargs = cloud_mask_file.meta
-        cloud_mask = cloud_mask_file.read(1)
+        cloud_mask = cloud_mask_file.read()
 
     # Calculate cloud mask from Sentinel's cloud related values.
     cloud_mask = np.isin(cloud_mask, scl_cloud_values).astype(np.int8)
@@ -100,7 +100,7 @@ def cloud_mask(
 
     if output:
         with rasterio.open(output, "w", **output_kwargs) as f:
-            f.write(cloud_mask_10m, 1)
+            f.write(cloud_mask_10m)
 
     return cloud_mask_10m
 
@@ -127,16 +127,16 @@ def true_color(
     :return: True color image.
     """
     with rasterio.open(r) as red:
-        red_band = red.read(1).astype(np.float32)
+        red_band = red.read().astype(np.float32)
         kwargs = red.meta
     with rasterio.open(g) as green:
-        green_band = green.read(1).astype(np.float32)
+        green_band = green.read().astype(np.float32)
     with rasterio.open(b) as blue:
-        blue_band = blue.read(1).astype(np.float32)
+        blue_band = blue.read().astype(np.float32)
 
     # Create true color image.
     # Adjust each band by the min-max so it will plot as RGB.
-    rgb_image = np.dstack((red_band, green_band, blue_band))
+    rgb_image = np.concatenate((red_band, green_band, blue_band), axis=0)
 
     max_pixel_value = rgb_image.max()
     rgb_image = np.multiply(rgb_image, 255.0)
@@ -174,11 +174,11 @@ def moisture(
     :return: Moisture index.
     """
     with rasterio.open(b8a) as band:
-        band_8a = band.read(1).astype(np.float32)
+        band_8a = band.read().astype(np.float32)
         band_8a[band_8a == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b11) as band:
-        band_11 = band.read(1).astype(np.float32)
+        band_11 = band.read().astype(np.float32)
         band_11[band_11 == 0] = np.nan
 
     moisture = (band_8a - band_11) / (band_8a + band_11)
@@ -190,7 +190,7 @@ def moisture(
         # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(moisture.astype(rasterio.float32), 1)
+            f.write(moisture.astype(rasterio.float32))
 
     return moisture
 
@@ -224,11 +224,11 @@ def ndvi(
     :return: NDVI index.
     """
     with rasterio.open(b4) as red:
-        RED = red.read(1).astype(np.float32)
+        RED = red.read().astype(np.float32)
         RED[RED == 0] = np.nan
         kwargs = red.meta
     with rasterio.open(b8) as nir:
-        NIR = nir.read(1).astype(np.float32)
+        NIR = nir.read().astype(np.float32)
         NIR[NIR == 0] = np.nan
 
     ndvi = (NIR - RED) / (NIR + RED)
@@ -240,7 +240,7 @@ def ndvi(
         # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(ndvi.astype(rasterio.float32), 1)
+            f.write(ndvi.astype(rasterio.float32))
 
     return ndvi
 
@@ -268,11 +268,11 @@ def ndsi(
     :return: NDSI index.
     """
     with rasterio.open(b3) as band:
-        band_3 = band.read(1).astype(np.float32)
+        band_3 = band.read().astype(np.float32)
         band_3[band_3 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b11) as band:
-        band_11 = band.read(1).astype(np.float32)
+        band_11 = band.read().astype(np.float32)
         band_11[band_11 == 0] = np.nan
 
     ndsi = (band_3 - band_11) / (band_3 + band_11)
@@ -285,7 +285,7 @@ def ndsi(
         # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(ndsi.astype(rasterio.float32), 1)
+            f.write(ndsi.astype(rasterio.float32))
 
     return ndsi
 
@@ -312,11 +312,11 @@ def ndwi(
     :return: NDWI index.
     """
     with rasterio.open(b3) as band:
-        band_3 = band.read(1).astype(np.float32)
+        band_3 = band.read().astype(np.float32)
         band_3[band_3 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b8) as band:
-        band_8 = band.read(1).astype(np.float32)
+        band_8 = band.read().astype(np.float32)
         band_8[band_8 == 0] = np.nan
 
     ndwi = (band_3 - band_8) / (band_3 + band_8)
@@ -328,7 +328,7 @@ def ndwi(
         # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
-            gtif.write(ndwi.astype(rasterio.float32), 1)
+            gtif.write(ndwi.astype(rasterio.float32))
 
     return ndwi
 
@@ -348,11 +348,11 @@ def evi2(
     :return: EVI2 index.
     """
     with rasterio.open(b4) as band:
-        band_4 = band.read(1).astype(np.float32)
+        band_4 = band.read().astype(np.float32)
         band_4[band_4 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b8) as band:
-        band_8 = band.read(1).astype(np.float32)
+        band_8 = band.read().astype(np.float32)
         band_8[band_8 == 0] = np.nan
 
     evi2 = 2.4 * ((band_8 - band_4) / (band_8 + band_4 + 1.0))
@@ -363,7 +363,7 @@ def evi2(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(evi2.astype(rasterio.float32), 1)
+            f.write(evi2.astype(rasterio.float32))
 
     return evi2
 
@@ -379,11 +379,11 @@ def osavi(b4: Path, b8: Path, Y: float = 0.16, *, output: Optional[Path] = None)
     :return: OSAVI index.
     """
     with rasterio.open(b4) as band:
-        band_4 = band.read(1).astype(np.float32)
+        band_4 = band.read().astype(np.float32)
         band_4[band_4 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b8) as band:
-        band_8 = band.read(1).astype(np.float32)
+        band_8 = band.read().astype(np.float32)
         band_8[band_8 == 0] = np.nan
 
     osavi = (1 + Y) * (band_8 - band_4) / (band_8 + band_4 + Y)
@@ -394,7 +394,7 @@ def osavi(b4: Path, b8: Path, Y: float = 0.16, *, output: Optional[Path] = None)
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(osavi.astype(rasterio.float32), 1)
+            f.write(osavi.astype(rasterio.float32))
 
     return osavi
 
@@ -414,11 +414,11 @@ def ndre(
     :return: NDRE index.
     """
     with rasterio.open(b5) as band:
-        band_5 = band.read(1).astype(np.float32)
+        band_5 = band.read().astype(np.float32)
         band_5[band_5 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b9) as band:
-        band_9 = band.read(1).astype(np.float32)
+        band_9 = band.read().astype(np.float32)
         band_9[band_9 == 0] = np.nan
 
     ndre = (band_9 - band_5) / (band_9 + band_5)
@@ -429,7 +429,7 @@ def ndre(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(ndre.astype(rasterio.float32), 1)
+            f.write(ndre.astype(rasterio.float32))
 
     return ndre
 
@@ -449,11 +449,11 @@ def mndwi(
     :return: MNDWI index.
     """
     with rasterio.open(b3) as band:
-        band_3 = band.read(1).astype(np.float32)
+        band_3 = band.read().astype(np.float32)
         band_3[band_3 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b11) as band:
-        band_11 = band.read(1).astype(np.float32)
+        band_11 = band.read().astype(np.float32)
         band_11[band_11 == 0] = np.nan
 
     mndwi = (band_3 - band_11) / (band_3 + band_11)
@@ -464,7 +464,7 @@ def mndwi(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(mndwi.astype(rasterio.float32), 1)
+            f.write(mndwi.astype(rasterio.float32))
 
     return mndwi
 
@@ -486,16 +486,16 @@ def bri(
     :return: BRI index.
     """
     with rasterio.open(b3) as band:
-        band_3 = band.read(1).astype(np.float32)
+        band_3 = band.read().astype(np.float32)
         band_3[band_3 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b5) as band:
-        band_5_20m = band.read(1).astype(np.float32)
+        band_5_20m = band.read().astype(np.float32)
         kwargs_5_20m = band.meta
         band_5, _ = rescale_band(band_5_20m, kwargs_5_20m)
         band_5[band_5 == 0] = np.nan
     with rasterio.open(b8) as band:
-        band_8 = band.read(1).astype(np.float32)
+        band_8 = band.read().astype(np.float32)
         band_8[band_8 == 0] = np.nan
 
     bri = (1 / band_3 - 1 / band_5) / band_8
@@ -506,7 +506,7 @@ def bri(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(bri.astype(rasterio.float32), 1)
+            f.write(bri.astype(rasterio.float32))
 
     return bri
 
@@ -528,14 +528,14 @@ def evi(b2: Path, b4: Path, b8: Path, *, output: Optional[Path] = None) -> np.ar
     :return: EVI index.
     """
     with rasterio.open(b2) as band:
-        band_2 = band.read(1).astype(np.float32)
+        band_2 = band.read().astype(np.float32)
         band_2[band_2 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b4) as band:
-        band_4 = band.read(1).astype(np.float32)
+        band_4 = band.read().astype(np.float32)
         band_4[band_4 == 0] = np.nan
     with rasterio.open(b8) as band:
-        band_8 = band.read(1).astype(np.float32)
+        band_8 = band.read().astype(np.float32)
         band_8[band_8 == 0] = np.nan
 
     evi = (2.5 * (band_8 - band_4)) / ((band_8 + 6 * band_4 - 7.5 * band_2) + 1)
@@ -546,7 +546,7 @@ def evi(b2: Path, b4: Path, b8: Path, *, output: Optional[Path] = None) -> np.ar
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(evi.astype(rasterio.float32), 1)
+            f.write(evi.astype(rasterio.float32))
 
     return evi
 
@@ -568,11 +568,11 @@ def ndyi(
     :return: NDYI index.
     """
     with rasterio.open(b2) as band:
-        band_2 = band.read(1).astype(np.float32)
+        band_2 = band.read().astype(np.float32)
         band_2[band_2 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b3) as band:
-        band_3 = band.read(1).astype(np.float32)
+        band_3 = band.read().astype(np.float32)
         band_3[band_3 == 0] = np.nan
 
     ndyi = (band_3 - band_2) / (band_3 + band_2)
@@ -583,7 +583,7 @@ def ndyi(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(ndyi.astype(rasterio.float32), 1)
+            f.write(ndyi.astype(rasterio.float32))
 
     return ndyi
 
@@ -603,11 +603,11 @@ def ri(
     :return: RI index.
     """
     with rasterio.open(b3) as band:
-        band_3 = band.read(1).astype(np.float32)
+        band_3 = band.read().astype(np.float32)
         band_3[band_3 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b4) as band:
-        band_4 = band.read(1).astype(np.float32)
+        band_4 = band.read().astype(np.float32)
         band_4[band_4 == 0] = np.nan
 
     ri = (band_4 - band_3) / (band_4 + band_3)
@@ -618,7 +618,7 @@ def ri(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(ri.astype(rasterio.float32), 1)
+            f.write(ri.astype(rasterio.float32))
 
     return ri
 
@@ -638,11 +638,11 @@ def cri1(
     :return: CRI1 index.
     """
     with rasterio.open(b2) as band:
-        band_2 = band.read(1).astype(np.float32)
+        band_2 = band.read().astype(np.float32)
         band_2[band_2 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b3) as band:
-        band_3 = band.read(1).astype(np.float32)
+        band_3 = band.read().astype(np.float32)
         band_3[band_3 == 0] = np.nan
 
     cri1 = (1 / band_2) / (1 / band_3)
@@ -653,7 +653,7 @@ def cri1(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
-            f.write(cri1.astype(rasterio.float32), 1)
+            f.write(cri1.astype(rasterio.float32))
 
     return cri1
 
@@ -677,19 +677,19 @@ def bsi(
     :return: BSI index.
     """
     with rasterio.open(b2) as band:
-        band_2 = band.read(1).astype(np.float32)
+        band_2 = band.read().astype(np.float32)
         band_2[band_2 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b4) as band:
-        band_4 = band.read(1).astype(np.float32)
+        band_4 = band.read().astype(np.float32)
         kwargs = band.meta
         band_4[band_4 == 0] = np.nan
     with rasterio.open(b8) as band:
-        band_8 = band.read(1).astype(np.float32)
+        band_8 = band.read().astype(np.float32)
         band_8[band_8 == 0] = np.nan
         kwargs = band.meta
     with rasterio.open(b11) as band:
-        band_11_20m = band.read(1).astype(np.float32)
+        band_11_20m = band.read().astype(np.float32)
         kwargs_11_20m = band.meta
         band_11, _ = rescale_band(band_11_20m, kwargs_11_20m)
         band_11[band_11 == 0] = np.nan
@@ -702,6 +702,6 @@ def bsi(
     if output:
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
-            gtif.write(bsi.astype(rasterio.float32), 1)
+            gtif.write(bsi.astype(rasterio.float32))
 
     return bsi
