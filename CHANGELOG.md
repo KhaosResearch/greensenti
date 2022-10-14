@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Released
 
+## 0.5.0
+
+### Added
+
+- BSI index implementation.
+
+### Fixed
+- Inconsistency between returned band and the band written to disk. More details in [#13](https://github.com/benhid/greensenti/pull/13#issuecomment-1278654643). 
+
 ## 0.4.0
 
 ### Added
