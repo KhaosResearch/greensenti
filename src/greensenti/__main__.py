@@ -1,7 +1,7 @@
 import fire
 
 import greensenti.band_arithmetic as ba
-import greensenti.raster as raster
+from greensenti import raster
 
 
 def main():
