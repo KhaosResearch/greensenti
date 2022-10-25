@@ -17,7 +17,7 @@ def download(
     output: Path = Path("."),
 ):
     """
-    Downloads products from D-HUS.
+    Downloads products from D-HUS (Data Hub Software).
 
     :param geojson: GeoJSON file with product geometries.
     :param from_date: From date %Y-%m-%d (begin date).
@@ -33,7 +33,7 @@ def download(
 
     sentinel_api = SentinelAPI(dhus_username, dhus_password, dhus_host, show_progressbars=False)
 
-    typer.echo("Searching for products in scene")
+    print("Searching for products in scene")
 
     # Search is limited to those scenes that intersect with the AOI
     # (area of interest) polygon.
