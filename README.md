@@ -10,6 +10,7 @@ From PyPI:
 
 ```console
 $ pip install greensenti
+$ pip install greensenti[gcloud] # For support to download from Google Cloud storage
 ```
 
 From source code:
@@ -36,6 +37,15 @@ GROUPS
      band-arithmetic
 
      raster
+
+     dhus
+```
+#### Download Sentinel-2 products
+
+```console
+$ greensenti dhus download --help
+$ greensenti dhus download geojson/teatinos.geojson 2022-10-01 2022-10-10
+$ greensenti dhus download geojson/teatinos.geojson 2022-10-01 2022-10-10 --unzip --max_clouds 15 --output /tmp
 ```
 
 #### Compute NDVI of El Ejido district (Málaga)

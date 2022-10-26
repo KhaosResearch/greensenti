@@ -3,7 +3,7 @@ import shutil
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 
