@@ -1,7 +1,7 @@
 import fire
 
 import greensenti.band_arithmetic as ba
-from greensenti import raster
+from greensenti import dhus, raster
 
 
 def main():
@@ -24,6 +24,7 @@ def main():
             "osavi": ba.osavi,
         },
         "raster": {"apply-mask": raster.apply_mask, "transform-image": raster.transform_image},
+        "dhus": {"download": dhus.download},
     }
     fire.Fire(cli_map)
 

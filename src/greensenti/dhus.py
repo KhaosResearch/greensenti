@@ -1,9 +1,9 @@
 import os
 import shutil
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List
+from typing import List, Tuple, Union
 
 from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 
@@ -15,30 +15,47 @@ except:
 
 def download(
     geojson: Path,
-    from_date: datetime,
-    to_date: datetime,
+    from_date: Union[str, datetime],
+    to_date: Union[str, datetime] = datetime.now(),
     *,
     unzip: bool = False,
+    max_clouds: int = 100,
     output: Path = Path("."),
     dhus_username: str = os.environ.get("DHUS_USERNAME", None),
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
     gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
 
-):
+) -> Tuple[Dict, Dict, Dict]:
     """
-    Downloads products from D-HUS (Data Hub Software).
+    Downloads Sentinel-2 products from D-HUS (Data Hub Software) or Google Cloud.
+
+    To connect to Google Cloud to download Sentinel-2 data the enviroment variable GOOGLE_APPLICATION_CREDENTIALS to be set
+    as defined here https://googleapis.dev/python/google-api-core/latest/auth.html#overview.
 
     :param geojson: GeoJSON file with product geometries.
     :param from_date: From date %Y-%m-%d (begin date).
     :param to_date: To date %Y-%m-%d (end date).
+    :param max_clouds: Max cloud percentage.
+    :param unzip: Whether to skip product unzip.
     :param output: Output folder.
-    :param skip_unzip: Whether to skip product unzip.
-    :return:
+    :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
+    :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
+    :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
+    :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
+    :return: TODO
     """
+    # Only use Google Cloud as backend is credentials are passed
+    # and the optional dependency is installed
     if gcloud and GCLOUD_DISABLED:
         print("Error: Missing required Google Cloud dependencies to download from GCloud, use `pip install greensenti[gcloud]` to install them.")
         exit(1)
+
+    if isinstance(from_date, str):
+        from_date = datetime.strptime(from_date, "%Y-%m-%d")
+    if isinstance(to_date, str):
+        to_date = datetime.strptime(to_date, "%Y-%m-%d")
+
     # Load geojson file* and download products for an interval of dates.
     #  *see: http://geojson.io/
     geojson = read_geojson(geojson)
@@ -55,7 +72,7 @@ def download(
         filename="S2*",
         producttype="S2MSI2A",
         platformname="Sentinel-2",
-        cloudcoverpercentage=(0, 100),
+        cloudcoverpercentage=(0, max_clouds),
         date=(from_date, to_date),
     )
 
@@ -99,18 +116,42 @@ def download(
     return product_infos, triggered, failed_downloads
 
 
-def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path(".")) -> None:
-    # Download products.
+def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path(".")) -> Tuple[Dict, Dict, Dict]:
+    """
+    Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
+    
+    :param titles: Sentinel-2 product ids.
+    :param api: Sentinelsat API object.
+    :param output: Output folder.
+    :return: TODO
+    """
     product_infos, triggered, failed_downloads = api.download_all(
         ids, str(output), max_attempts=10, n_concurrent_dl=1, lta_retry_delay=600
     )
     return product_infos, triggered, failed_downloads
 
-def gcloud_bucket():
+def gcloud_bucket() -> storage.Bucket:
+    """
+    Connects to Google Cloud gcp-public-data-sentinel-2 bucket to download
+    Sentinel-2 data.
+
+    **Expects** the enviroment variable GOOGLE_APPLICATION_CREDENTIALS to be set
+    as defined here https://googleapis.dev/python/google-api-core/latest/auth.html#overview.
+
+    :return: Google Cloud bucket object
+    """
     client = storage.Client()
     return client.bucket("gcp-public-data-sentinel-2")
 
-def gcloud_download(titles: str, api: storage.Bucket, output: Path = Path(".")):
+def gcloud_download(titles: str, api: storage.Bucket, output: Path = Path(".")) -> Tuple[Dict, Dict, Dict]:
+    """
+    Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
+    
+    :param titles: Sentinel-2 product titles.
+    :param api: Google Cloud bucket object.
+    :param output: Output folder.
+    :return: TODO
+    """
     product_infos = {}
     failed_downloads = {}
 
@@ -153,13 +194,12 @@ def gcloud_download(titles: str, api: storage.Bucket, output: Path = Path(".")):
 
     return product_infos, {}, failed_downloads
 
-def get_gcloud_path(title: str):
+def get_gcloud_path(title: str) -> str:
     """
     Gets the google cloud bucket prefix for a given Sentinel-2 product.
-    Products are group by tile id or MGRS coordinatesor
+    Products are group by tile id or MGRS coordinates.
 
     :param title: Sentinel-2 title.
-
     :return: Google Cloud path for title
     """
     tile_id = title.split("_T")[1] # This is always a 2 digit and 3 letter ID  E.g: 30SUF
