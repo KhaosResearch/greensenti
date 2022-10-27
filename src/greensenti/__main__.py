@@ -24,7 +24,10 @@ def main():
             "osavi": ba.osavi,
         },
         "raster": {"apply-mask": raster.apply_mask, "transform-image": raster.transform_image},
-        "dhus": {"download": dhus.download},
+        "download": {
+            "by-text": dhus.download_by_text,
+            "by-geometry": dhus.download_by_geometry,
+        },
     }
     fire.Fire(cli_map)
 

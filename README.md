@@ -43,9 +43,11 @@ GROUPS
 #### Download Sentinel-2 products
 
 ```console
-$ greensenti dhus download --help
-$ greensenti dhus download geojson/teatinos.geojson 2022-10-01 2022-10-10
-$ greensenti dhus download geojson/teatinos.geojson 2022-10-01 2022-10-10 --unzip --max_clouds 15 --output /tmp
+$ greensenti download --help
+$ greensenti download by-geometry geojson/teatinos.geojson 2022-10-01 2022-10-10
+$ greensenti download by-geometry geojson/teatinos.geojson 2022-10-01 2022-10-10 --unzip --max_clouds 15 --output /tmp
+$ greensenti download by-text S2B_MSIL2A_20221005T105819_N0400_R094_T30SUF_20221005T135951
+$ greensenti download by-geometry '*T30SUF*' 2022-10-01 2022-10-10 --unzip --max_clouds 15 --output /tmp
 ```
 
 #### Compute NDVI of El Ejido district (Málaga)

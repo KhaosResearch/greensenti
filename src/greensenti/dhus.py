@@ -13,10 +13,10 @@ try:
 except:
     GCLOUD_DISABLED = True
 
-def download(
-    geojson: Path,
-    from_date: Union[str, datetime],
-    to_date: Union[str, datetime] = datetime.now(),
+def download_by_text(
+    text_match: str,
+    from_date: Union[str, datetime] = None,
+    to_date: Union[str, datetime] = None,
     *,
     unzip: bool = False,
     max_clouds: int = 100,
@@ -25,15 +25,106 @@ def download(
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
     gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
-
 ) -> Tuple[Dict, Dict, Dict]:
     """
-    Downloads Sentinel-2 products from D-HUS (Data Hub Software) or Google Cloud.
+    Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud by a text match with the product title.
+
+    To connect to Google Cloud to download Sentinel-2 data the enviroment variable GOOGLE_APPLICATION_CREDENTIALS to be set
+    as defined here https://googleapis.dev/python/google-api-core/latest/auth.html#overview.
+
+    :param text_match: Regular expresion to match the product filename.
+    :param from_date: From date %Y-%m-%d (begin date).
+    :param to_date: To date %Y-%m-%d (end date).
+    :param max_clouds: Max cloud percentage.
+    :param unzip: Whether to skip product unzip.
+    :param output: Output folder.
+    :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
+    :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
+    :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
+    :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
+    :return: TODO
+    """
+    return download(
+        geojson=None,
+        text_match=text_match,
+        from_date=from_date,
+        to_date=to_date,
+        unzip=unzip,
+        max_clouds=max_clouds,
+        output=output,
+        dhus_username=dhus_username,
+        dhus_password=dhus_password,
+        dhus_host=dhus_host,
+        gcloud=gcloud,
+    )
+
+def download_by_geometry(
+    geojson: Path,
+    from_date: Union[str, datetime] = None,
+    to_date: Union[str, datetime] = None,
+    *,
+    unzip: bool = False,
+    max_clouds: int = 100,
+    output: Path = Path("."),
+    dhus_username: str = os.environ.get("DHUS_USERNAME", None),
+    dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
+    dhus_host: str = os.environ.get("DHUS_HOST", None),
+    gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
+):
+    """
+    Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud by a given geometry in GeoJSON format.
 
     To connect to Google Cloud to download Sentinel-2 data the enviroment variable GOOGLE_APPLICATION_CREDENTIALS to be set
     as defined here https://googleapis.dev/python/google-api-core/latest/auth.html#overview.
 
     :param geojson: GeoJSON file with product geometries.
+    :param from_date: From date %Y-%m-%d (begin date).
+    :param to_date: To date %Y-%m-%d (end date).
+    :param max_clouds: Max cloud percentage.
+    :param unzip: Whether to skip product unzip.
+    :param output: Output folder.
+    :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
+    :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
+    :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
+    :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
+    :return: TODO
+    """
+    return download(
+        geojson=geojson,
+        text_match=None,
+        from_date=from_date,
+        to_date=to_date,
+        unzip=unzip,
+        max_clouds=max_clouds,
+        output=output,
+        dhus_username=dhus_username,
+        dhus_password=dhus_password,
+        dhus_host=dhus_host,
+        gcloud=gcloud,
+    )
+
+def download(
+    geojson: Path = None,
+    text_match: str = "*",
+    from_date: Union[str, datetime] = None,
+    to_date: Union[str, datetime] = None,
+    *,
+    unzip: bool = False,
+    max_clouds: int = 100,
+    output: Path = Path("."),
+    dhus_username: str = os.environ.get("DHUS_USERNAME", None),
+    dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
+    dhus_host: str = os.environ.get("DHUS_HOST", None),
+    gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
+) -> Tuple[Dict, Dict, Dict]:
+    """
+    Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud.
+
+    To connect to Google Cloud to download Sentinel-2 data the enviroment variable GOOGLE_APPLICATION_CREDENTIALS to be set
+    as defined here https://googleapis.dev/python/google-api-core/latest/auth.html#overview.
+
+    :param geojson: GeoJSON file with product geometries.
+    :param text_match: Regular expresion to match the product filename.
     :param from_date: From date %Y-%m-%d (begin date).
     :param to_date: To date %Y-%m-%d (end date).
     :param max_clouds: Max cloud percentage.
@@ -51,15 +142,30 @@ def download(
         print("Error: Missing required Google Cloud dependencies to download from GCloud, use `pip install greensenti[gcloud]` to install them.")
         exit(1)
 
+    # Make sure dates are datetime, and if not set add sensible defaults
     if isinstance(from_date, str):
         from_date = datetime.strptime(from_date, "%Y-%m-%d")
+    elif not from_date:
+        from_date = datetime(1970, 1, 1)
+
     if isinstance(to_date, str):
         to_date = datetime.strptime(to_date, "%Y-%m-%d")
+    elif not to_date:
+        to_date = datetime.now()
 
     # Load geojson file* and download products for an interval of dates.
     #  *see: http://geojson.io/
-    geojson = read_geojson(geojson)
-    footprint = geojson_to_wkt(geojson)
+    if geojson:
+        geojson = read_geojson(geojson)
+        footprint = geojson_to_wkt(geojson)
+    else:
+        footprint = None
+
+    # Text match uses filename, to avoid users having to add unknown extensions,
+    # add wildcard at the end
+    if text_match:
+        if not text_match.endswith('*'):
+            text_match += '*'
 
     sentinel_api = SentinelAPI(dhus_username, dhus_password, dhus_host, show_progressbars=False)
 
@@ -69,7 +175,7 @@ def download(
     # (area of interest) polygon.
     products = sentinel_api.query(
         area=footprint,
-        filename="S2*",
+        filename=text_match,
         producttype="S2MSI2A",
         platformname="Sentinel-2",
         cloudcoverpercentage=(0, max_clouds),
