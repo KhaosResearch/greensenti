@@ -269,7 +269,7 @@ def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path("
     return pd.DataFrame(status)
 
 
-def gcloud_bucket() -> storage.Bucket:
+def gcloud_bucket() -> "storage.Bucket":
     """
     Connects to Google Cloud gcp-public-data-sentinel-2 bucket to download
     Sentinel-2 data.
@@ -283,7 +283,7 @@ def gcloud_bucket() -> storage.Bucket:
     return client.bucket("gcp-public-data-sentinel-2")
 
 
-def gcloud_download(titles: str, api: storage.Bucket, output: Path = Path(".")) -> pd.DataFrame:
+def gcloud_download(titles: str, api: "storage.Bucket", output: Path = Path(".")) -> pd.DataFrame:
     """
     Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
 
