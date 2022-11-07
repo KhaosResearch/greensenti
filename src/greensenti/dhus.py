@@ -3,8 +3,9 @@ import shutil
 import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import List, Union
 
+import pandas as pd
 from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 
 try:
@@ -12,6 +13,7 @@ try:
     from google.cloud import storage
 except:
     GCLOUD_DISABLED = True
+
 
 def download_by_text(
     text_match: str,
@@ -25,7 +27,7 @@ def download_by_text(
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
     gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
-) -> Tuple[Dict, Dict, Dict]:
+) -> pd.DataFrame:
     """
     Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud by a text match with the product title.
 
@@ -42,7 +44,7 @@ def download_by_text(
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
     :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
-    :return: TODO
+    :return: pandas dataframe with the product metadata and download status
     """
     return download(
         geojson=None,
@@ -58,6 +60,7 @@ def download_by_text(
         gcloud=gcloud,
     )
 
+
 def download_by_geometry(
     geojson: Path,
     from_date: Union[str, datetime] = None,
@@ -70,7 +73,7 @@ def download_by_geometry(
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
     gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
-):
+) -> pd.DataFrame:
     """
     Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud by a given geometry in GeoJSON format.
 
@@ -87,7 +90,7 @@ def download_by_geometry(
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
     :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
-    :return: TODO
+    :return: pandas dataframe with the product metadata and download status
     """
     return download(
         geojson=geojson,
@@ -103,6 +106,7 @@ def download_by_geometry(
         gcloud=gcloud,
     )
 
+
 def download(
     geojson: Path = None,
     text_match: str = "*",
@@ -116,7 +120,7 @@ def download(
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
     gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
-) -> Tuple[Dict, Dict, Dict]:
+) -> pd.DataFrame:
     """
     Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud.
 
@@ -134,12 +138,14 @@ def download(
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
     :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
-    :return: TODO
+    :return: pandas dataframe with the product metadata and download status
     """
     # Only use Google Cloud as backend is credentials are passed
     # and the optional dependency is installed
     if gcloud and GCLOUD_DISABLED:
-        print("Error: Missing required Google Cloud dependencies to download from GCloud, use `pip install greensenti[gcloud]` to install them.")
+        print(
+            "Error: Missing required Google Cloud dependencies to download from GCloud, use `pip install greensenti[gcloud]` to install them."
+        )
         exit(1)
 
     # Make sure dates are datetime, and if not set add sensible defaults
@@ -164,8 +170,8 @@ def download(
     # Text match uses filename, to avoid users having to add unknown extensions,
     # add wildcard at the end
     if text_match:
-        if not text_match.endswith('*'):
-            text_match += '*'
+        if not text_match.endswith("*"):
+            text_match += "*"
 
     sentinel_api = SentinelAPI(dhus_username, dhus_password, dhus_host, show_progressbars=False)
 
@@ -189,21 +195,20 @@ def download(
     print(f"Found {len(ids)} scenes between {from_date} and {to_date}")
 
     if not gcloud:
-        product_infos, triggered, failed_downloads = copernicous_download(ids, sentinel_api, output=output)
+        status_df = copernicous_download(ids, sentinel_api, output=output)
+        products_df = pd.merge(products_df, status_df, how="outer", on="uuid")
     else:
         gcloud_api = gcloud_bucket()
         # Google cloud doesn't utilize ids, only titles
         titles = products_df["title"]
-        product_infos, triggered, failed_downloads = gcloud_download(titles, gcloud_api, output=output)
-        
+        status_df = gcloud_download(titles, gcloud_api, output=output)
+        products_df = pd.merge(products_df, status_df, how="outer", on="title")
 
-    print(f"Success: {len(product_infos)}")
-    print(f"Triggered: {len(triggered)}")
-    print(f"Failed: {len(failed_downloads)}")
+    print(f"Status: {status_df}")
 
     if unzip:
-        for product_id, product_info in product_infos.items():
-            title = product_info["title"]
+        for product in products_df.iterrows():
+            title = product["title"]
 
             print(f"Unzipping {title}")
 
@@ -219,22 +224,50 @@ def download(
             with zipfile.ZipFile(zip_filename, "r") as zip_file:
                 zip_file.extractall(data_dir)
 
-    return product_infos, triggered, failed_downloads
+    return products_df
 
 
-def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path(".")) -> Tuple[Dict, Dict, Dict]:
+def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path(".")) -> pd.DataFrame:
     """
     Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
-    
+
     :param titles: Sentinel-2 product ids.
     :param api: Sentinelsat API object.
     :param output: Output folder.
-    :return: TODO
+    :return: pandas dataframe with the product status by id
     """
-    product_infos, triggered, failed_downloads = api.download_all(
+    product_info, triggered, failed_downloads = api.download_all(
         ids, str(output), max_attempts=10, n_concurrent_dl=1, lta_retry_delay=600
     )
-    return product_infos, triggered, failed_downloads
+
+    status = []
+
+    for product in product_info:
+        status.append(
+            {
+                "uuid": product,
+                "status": "ok",
+            }
+        )
+
+    for product in triggered:
+        status.append(
+            {
+                "uuid": product,
+                "status": "triggered",
+            }
+        )
+
+    for product in failed_downloads:
+        status.append(
+            {
+                "uuid": product,
+                "status": "failed",
+            }
+        )
+
+    return pd.DataFrame(status)
+
 
 def gcloud_bucket() -> storage.Bucket:
     """
@@ -249,17 +282,17 @@ def gcloud_bucket() -> storage.Bucket:
     client = storage.Client()
     return client.bucket("gcp-public-data-sentinel-2")
 
-def gcloud_download(titles: str, api: storage.Bucket, output: Path = Path(".")) -> Tuple[Dict, Dict, Dict]:
+
+def gcloud_download(titles: str, api: storage.Bucket, output: Path = Path(".")) -> pd.DataFrame:
     """
     Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
-    
+
     :param titles: Sentinel-2 product titles.
     :param api: Google Cloud bucket object.
     :param output: Output folder.
-    :return: TODO
+    :return: pandas dataframe with the product status by title
     """
-    product_infos = {}
-    failed_downloads = {}
+    status = []
 
     for title in titles:
         try:
@@ -269,36 +302,46 @@ def gcloud_download(titles: str, api: storage.Bucket, output: Path = Path(".")) 
             blobs = api.list_blobs(prefix=gcloud_path)
 
             for blob in blobs:
-                if blob.name.endswith("/") or blob.name.endswith("$folder$"): # Ignore folders and GCloud files
+                if blob.name.endswith("/") or blob.name.endswith("$folder$"):  # Ignore folders and GCloud files
                     continue
 
                 # make sure temporal folder exists
-                local_blob_dir = os.path.dirname(blob.name.removeprefix(gcloud_path+"/"))
+                local_blob_dir = os.path.dirname(blob.name.removeprefix(gcloud_path + "/"))
                 dir_ = os.path.join(output, product_folder, local_blob_dir)
                 Path(dir_).mkdir(parents=True, exist_ok=True)
 
                 # Remove fluff from blob name
                 local_blob_name = os.path.basename(blob.name.removeprefix(gcloud_path))
-                
+
                 # Download to local file
                 local_blob_path = os.path.join(dir_, local_blob_name)
                 if not os.path.isfile(local_blob_path):
-                    blob.download_to_filename(local_blob_path) 
+                    blob.download_to_filename(local_blob_path)
                 else:
                     print("File exists, skipping")
 
-        
             # Upload product zip file to minio
             local_product_folder = os.path.join(output, product_folder)
             local_zip_file = os.path.join(output, title)
-            if not os.path.isfile(local_zip_file+".zip"):
-                shutil.make_archive(local_zip_file, 'zip', local_product_folder)
+            if not os.path.isfile(local_zip_file + ".zip"):
+                shutil.make_archive(local_zip_file, "zip", local_product_folder)
 
-            product_infos[title] = "OK"
+            status.append(
+                {
+                    "title": title,
+                    "status": "ok",
+                }
+            )
         except Exception as e:
-            failed_downloads[tile] = e
+            status.append(
+                {
+                    "title": title,
+                    "status": "failed",
+                }
+            )
 
-    return product_infos, {}, failed_downloads
+    return pd.DataFrame(status)
+
 
 def get_gcloud_path(title: str) -> str:
     """
@@ -308,8 +351,8 @@ def get_gcloud_path(title: str) -> str:
     :param title: Sentinel-2 title.
     :return: Google Cloud path for title
     """
-    tile_id = title.split("_T")[1] # This is always a 2 digit and 3 letter ID  E.g: 30SUF
+    tile_id = title.split("_T")[1]  # This is always a 2 digit and 3 letter ID  E.g: 30SUF
     tile_number = str(tile_id[0:2])
     tile_type = str(tile_id[2])
-    tile_subtype=str(tile_id[3:5])
+    tile_subtype = str(tile_id[3:5])
     return "/".join(["L2/tiles", tile_number, tile_type, tile_subtype, f"{title}.SAFE"])
