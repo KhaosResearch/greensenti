@@ -25,8 +25,11 @@ def main():
         },
         "raster": {"apply-mask": raster.apply_mask, "transform-image": raster.transform_image},
         "download": {
-            "by-text": dhus.download_by_text,
-            "by-geometry": dhus.download_by_geometry,
+            # Fire has an issue returning pandas.DataFrames, those functions
+            # must return a str instead
+            # Reference: https://github.com/google/python-fire/issues/274
+            "by-text": lambda *args, **kwargs: str(dhus.download_by_text(*args, **kwargs)),
+            "by-geometry": lambda *args, **kwargs: str(dhus.download_by_geometry(*args, **kwargs)),
         },
     }
     fire.Fire(cli_map)
