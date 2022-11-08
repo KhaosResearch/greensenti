@@ -28,7 +28,7 @@ def main():
             # Fire has an issue returning pandas.DataFrames, those functions
             # must return a str instead
             # Reference: https://github.com/google/python-fire/issues/274
-            "by-text": lambda *args, **kwargs: str(dhus.download_by_text(*args, **kwargs)),
+            "by-title": lambda *args, **kwargs: str(dhus.download_by_title(*args, **kwargs)),
             "by-geometry": lambda *args, **kwargs: str(dhus.download_by_geometry(*args, **kwargs)),
         },
     }

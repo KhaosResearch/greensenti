@@ -11,11 +11,11 @@ from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 try:
     GCLOUD_DISABLED = False
     from google.cloud import storage
-except:
+except ImportError:
     GCLOUD_DISABLED = True
 
 
-def download_by_text(
+def download_by_title(
     text_match: str,
     from_date: Union[str, datetime] = None,
     to_date: Union[str, datetime] = None,
@@ -269,26 +269,26 @@ def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path("
     return pd.DataFrame(status)
 
 
-def gcloud_bucket() -> "storage.Bucket":
+def gcloud_bucket() -> "storage.Client":
     """
-    Connects to Google Cloud gcp-public-data-sentinel-2 bucket to download
+    Connects to Google Cloud and returns the client object
     Sentinel-2 data.
 
     **Expects** the enviroment variable GOOGLE_APPLICATION_CREDENTIALS to be set
     as defined here https://googleapis.dev/python/google-api-core/latest/auth.html#overview.
 
-    :return: Google Cloud bucket object
+    :return: Google Cloud client object
     """
     client = storage.Client()
-    return client.bucket("gcp-public-data-sentinel-2")
+    return client
 
 
-def gcloud_download(titles: str, api: "storage.Bucket", output: Path = Path(".")) -> pd.DataFrame:
+def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Path(".")) -> pd.DataFrame:
     """
     Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
 
     :param titles: Sentinel-2 product titles.
-    :param api: Google Cloud bucket object.
+    :param api: Google Cloud client object.
     :param output: Output folder.
     :return: pandas dataframe with the product status by title
     """
@@ -297,33 +297,32 @@ def gcloud_download(titles: str, api: "storage.Bucket", output: Path = Path(".")
     for title in titles:
         try:
             gcloud_path = get_gcloud_path(title)
-            product_folder = os.path.basename(gcloud_path)
+            product_folder = Path(gcloud_path).name
 
-            blobs = api.list_blobs(prefix=gcloud_path)
+            blobs = api.list_blobs("gcp-public-data-sentinel-2", prefix=gcloud_path)
 
             for blob in blobs:
                 if blob.name.endswith("/") or blob.name.endswith("$folder$"):  # Ignore folders and GCloud files
                     continue
 
-                # make sure temporal folder exists
-                local_blob_dir = os.path.dirname(blob.name.removeprefix(gcloud_path + "/"))
-                dir_ = os.path.join(output, product_folder, local_blob_dir)
-                Path(dir_).mkdir(parents=True, exist_ok=True)
+                # Prepare path to local file
+                output_folder = output.resolve() / product_folder
+                local_blob_name = Path(blob.name.removeprefix(gcloud_path + "/"))
+                local_blob_path = output_folder / local_blob_name
 
-                # Remove fluff from blob name
-                local_blob_name = os.path.basename(blob.name.removeprefix(gcloud_path))
+                # Make sure output folder exists
+                local_blob_path.parent.mkdir(parents=True, exist_ok=True)
 
-                # Download to local file
-                local_blob_path = os.path.join(dir_, local_blob_name)
-                if not os.path.isfile(local_blob_path):
+                # Download if doesn't exist
+                if not Path.is_file(local_blob_path):
                     blob.download_to_filename(local_blob_path)
                 else:
                     print("File exists, skipping")
 
             # Upload product zip file to minio
-            local_product_folder = os.path.join(output, product_folder)
-            local_zip_file = os.path.join(output, title)
-            if not os.path.isfile(local_zip_file + ".zip"):
+            local_product_folder = output / product_folder
+            local_zip_file = output / title
+            if not Path.is_file(local_zip_file.with_suffix(".zip")):
                 shutil.make_archive(local_zip_file, "zip", local_product_folder)
 
             status.append(
@@ -337,6 +336,7 @@ def gcloud_download(titles: str, api: "storage.Bucket", output: Path = Path(".")
                 {
                     "title": title,
                     "status": "failed",
+                    "error": str(e),
                 }
             )
 
