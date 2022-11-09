@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added support to download by text match.
 - Added `download by-geometry` and `download by-title` to Fire commands.
 
+### Changes
+
+- Ownership of the project transferred from [benhid](https://github.com/benhid/greensenti) to [Khaos Research](https://github.com/KhaosResearch/greensenti) organization on GitHub 🎉 
 
 ## Released
 
@@ -32,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Inconsistency between returned band and the band written to disk. More details in [#13](https://github.com/benhid/greensenti/pull/13#issuecomment-1278654643). 
+- Inconsistency between returned band and the band written to disk. More details in [#13](https://github.com/KhaosResearch/greensenti/pull/13#issuecomment-1278654643). 
 
 ## 0.4.0
 

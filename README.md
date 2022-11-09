@@ -1,7 +1,6 @@
 # greensenti
 
-![CI](https://github.com/benhid/greensenti/actions/workflows/ci.yml/badge.svg)
-![Release](https://github.com/benhid/greensenti/actions/workflows/release.yml/badge.svg)
+![CI](https://github.com/KhaosResearch/greensenti/actions/workflows/ci.yml/badge.svg)
 <img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 
 ## Setup
@@ -40,6 +39,7 @@ GROUPS
 
      download
 ```
+
 #### Download Sentinel-2 products
 
 ```console
