@@ -1,7 +1,7 @@
 import fire
 
 import greensenti.band_arithmetic as ba
-import greensenti.raster as raster
+from greensenti import dhus, raster
 
 
 def main():
@@ -24,6 +24,13 @@ def main():
             "osavi": ba.osavi,
         },
         "raster": {"apply-mask": raster.apply_mask, "transform-image": raster.transform_image},
+        "download": {
+            # Fire has an issue returning pandas.DataFrames, those functions
+            # must return a str instead
+            # Reference: https://github.com/google/python-fire/issues/274
+            "by-title": lambda *args, **kwargs: str(dhus.download_by_title(*args, **kwargs)),
+            "by-geometry": lambda *args, **kwargs: str(dhus.download_by_geometry(*args, **kwargs)),
+        },
     }
     fire.Fire(cli_map)
 
