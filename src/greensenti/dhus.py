@@ -214,19 +214,8 @@ def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path("
     for id_ in ids:
         try:
             product_info = api.download(id_, str(output))
-            title = product_info["title"]
 
-            # Make sure the output folder exists.
-            data_dir = Path(output, title)
-            data_dir.mkdir(parents=True, exist_ok=True)
-
-            zip_filename = Path(output, title + ".zip")
-
-            if Path(data_dir, title).is_dir():
-                continue
-
-            with zipfile.ZipFile(zip_filename, "r") as zip_file:
-                zip_file.extractall(data_dir)
+            unzip_product(output, product_info["title"])
             
             # If there is no error, yield "ok"
             yield {
@@ -244,6 +233,27 @@ def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path("
                     "status": "failed",
                 }
 
+def unzip_product(output_folder: Path, title: str) -> None:
+    """
+    Unzip a downloaded product inside the same folder
+
+    :param output_folder: Output folder.
+    :param title: Sentinel-2 product title.
+    
+    :return: None
+    """
+    # Make sure the output folder exists.
+    data_dir = Path(output_folder, title)
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    zip_filename = Path(output_folder, title + ".zip")
+
+    # We assume the file is already unzip correctly
+    if Path(data_dir, title).is_dir():
+        return
+
+    with zipfile.ZipFile(zip_filename, "r") as zip_file:
+        zip_file.extractall(data_dir)
 
 def gcloud_bucket() -> "storage.Client":
     """
