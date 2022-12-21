@@ -188,16 +188,16 @@ def download(
 
     if not gcloud:
         for product in copernicous_download(ids, sentinel_api, output=output):
-            product_json_str = products_df[products_df["id"]==product["id"]].to_json(orient="records")
-            product_json = json.loads(product_json_str)[0] # Pandas gives a list of elements always
+            product_json_str = products_df[products_df["id"] == product["id"]].to_json(orient="records")
+            product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
             yield {**product_json, **product}
     else:
         gcloud_api = gcloud_bucket()
         # Google cloud doesn't utilize ids, only titles
         titles = products_df["title"]
         for product in gcloud_download(titles, gcloud_api, output=output):
-            product_json_str = products_df[products_df["title"]==product["title"]].to_json(orient="records")
-            product_json = json.loads(product_json_str)[0] # Pandas gives a list of elements always
+            product_json_str = products_df[products_df["title"] == product["title"]].to_json(orient="records")
+            product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
             yield {**product_json, **product}
 
 
@@ -216,22 +216,23 @@ def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path("
             product_info = api.download(id_, str(output))
 
             unzip_product(output, product_info["title"])
-            
+
             # If there is no error, yield "ok"
             yield {
-                    "uuid": id_,
-                    "status": "ok",
-                }
+                "uuid": id_,
+                "status": "ok",
+            }
         except LTATriggered:
             yield {
-                    "uuid": id_,
-                    "status": "triggered",
-                }
+                "uuid": id_,
+                "status": "triggered",
+            }
         except LTAError:
             yield {
-                    "uuid": id_,
-                    "status": "failed",
-                }
+                "uuid": id_,
+                "status": "failed",
+            }
+
 
 def unzip_product(output_folder: Path, title: str) -> None:
     """
@@ -239,7 +240,7 @@ def unzip_product(output_folder: Path, title: str) -> None:
 
     :param output_folder: Output folder.
     :param title: Sentinel-2 product title.
-    
+
     :return: None
     """
     # Make sure the output folder exists.
@@ -254,6 +255,7 @@ def unzip_product(output_folder: Path, title: str) -> None:
 
     with zipfile.ZipFile(zip_filename, "r") as zip_file:
         zip_file.extractall(data_dir)
+
 
 def gcloud_bucket() -> "storage.Client":
     """
@@ -305,15 +307,15 @@ def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Pat
                     print("File exists, skipping")
 
             yield {
-                    "title": title,
-                    "status": "ok",
-                }
+                "title": title,
+                "status": "ok",
+            }
         except Exception as e:
             yield {
-                    "title": title,
-                    "status": "failed",
-                    "error": str(e),
-                }
+                "title": title,
+                "status": "failed",
+                "error": str(e),
+            }
 
 
 def get_gcloud_path(title: str) -> str:

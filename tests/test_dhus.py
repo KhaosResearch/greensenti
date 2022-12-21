@@ -18,23 +18,25 @@ def test_copernicous_download_returns_correct_dataframe(monkeypatch):
     # Mock unzip
     monkeypatch.setattr(dhus, "unzip_product", lambda *args: None)
 
-    status = list(dhus.copernicous_download(
-        ids=[
-            "uuid1",
-            "uuid2",
-            "uuid3",
-            "uuid4",
-            "uuid5",
-        ],
-        api=mock,
-    ))
+    status = list(
+        dhus.copernicous_download(
+            ids=[
+                "uuid1",
+                "uuid2",
+                "uuid3",
+                "uuid4",
+                "uuid5",
+            ],
+            api=mock,
+        )
+    )
 
     expected_status = [
-            {"uuid": "uuid1", "status": "ok"},
-            {"uuid": "uuid2", "status": "ok"},
-            {"uuid": "uuid3", "status": "ok"},
-            {"uuid": "uuid4", "status": "ok"},
-            {"uuid": "uuid5", "status": "ok"},
-        ]
+        {"uuid": "uuid1", "status": "ok"},
+        {"uuid": "uuid2", "status": "ok"},
+        {"uuid": "uuid3", "status": "ok"},
+        {"uuid": "uuid4", "status": "ok"},
+        {"uuid": "uuid5", "status": "ok"},
+    ]
 
     assert status == expected_status
