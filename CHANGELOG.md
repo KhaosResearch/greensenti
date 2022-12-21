@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changes
+
+- Download functions on the `dhus` module are now generators of dictionaries instead of a complete dataframe at the end of the download. This allow to each product to be process before the download of all of them is complete.
+
+### Removed
+
+- The `unzip` parameter from the `dhus` module has been removed. This now defaults to true to maintain consistency between copernicous and gcloud downloads.
+
 ## 0.6.0
 
 ### Added
