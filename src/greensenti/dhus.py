@@ -198,7 +198,9 @@ def download(
 
     if not gcloud:
         for product in copernicous_download(ids, sentinel_api, output=output):
-            product_json_str = products_df[products_df["id"] == product["id"]].to_json(orient="records")
+            product_json_str = products_df[products_df["id"] == product["id"]].to_json(
+                orient="records", date_format="iso"
+            )
             product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
             yield {**product_json, **product}
     else:
@@ -206,7 +208,9 @@ def download(
         # Google cloud doesn't utilize ids, only titles
         titles = products_df["title"]
         for product in gcloud_download(titles, gcloud_api, output=output):
-            product_json_str = products_df[products_df["title"] == product["title"]].to_json(orient="records")
+            product_json_str = products_df[products_df["title"] == product["title"]].to_json(
+                orient="records", date_format="iso"
+            )
             product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
             yield {**product_json, **product}
 
