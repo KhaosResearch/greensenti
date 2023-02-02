@@ -22,6 +22,7 @@ def download_by_title(
     *,
     max_clouds: int = 100,
     output: Path = Path("."),
+    skip: List[str] = None,
     dhus_username: str = os.environ.get("DHUS_USERNAME", None),
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
@@ -38,6 +39,7 @@ def download_by_title(
     :param to_date: To date %Y-%m-%d (end date).
     :param max_clouds: Max cloud percentage.
     :param output: Output folder.
+    :param skip: List of product titles to ignore
     :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
@@ -51,6 +53,7 @@ def download_by_title(
         to_date=to_date,
         max_clouds=max_clouds,
         output=output,
+        skip=skip,
         dhus_username=dhus_username,
         dhus_password=dhus_password,
         dhus_host=dhus_host,
@@ -65,6 +68,7 @@ def download_by_geometry(
     *,
     max_clouds: int = 100,
     output: Path = Path("."),
+    skip: List[str] = None,
     dhus_username: str = os.environ.get("DHUS_USERNAME", None),
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
@@ -81,6 +85,7 @@ def download_by_geometry(
     :param to_date: To date %Y-%m-%d (end date).
     :param max_clouds: Max cloud percentage.
     :param output: Output folder.
+    :param skip: List of product titles to ignore
     :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
@@ -94,6 +99,7 @@ def download_by_geometry(
         to_date=to_date,
         max_clouds=max_clouds,
         output=output,
+        skip=skip,
         dhus_username=dhus_username,
         dhus_password=dhus_password,
         dhus_host=dhus_host,
@@ -109,6 +115,7 @@ def download(
     *,
     max_clouds: int = 100,
     output: Path = Path("."),
+    skip: List[str] = None,
     dhus_username: str = os.environ.get("DHUS_USERNAME", None),
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
@@ -126,6 +133,7 @@ def download(
     :param to_date: To date %Y-%m-%d (end date).
     :param max_clouds: Max cloud percentage.
     :param output: Output folder.
+    :param skip: List of product titles to ignore
     :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
@@ -182,6 +190,8 @@ def download(
 
     # Get the list of products.
     products_df = sentinel_api.to_dataframe(products)
+    if skip:
+        products_df = products_df[~products_df["title"].isin(skip)]
     ids = products_df.index
 
     print(f"Found {len(ids)} scenes between {from_date} and {to_date}")

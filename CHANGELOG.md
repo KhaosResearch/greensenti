@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Add `skip` parameter to download functions to remove specific products from the query results.
+
 ### Changes
 
 - Download functions on the `dhus` module are now generators of dictionaries instead of a complete dataframe at the end of the download. This allow to each product to be process before the download of all of them is complete.

@@ -3,7 +3,6 @@ from typing import Optional
 
 import numpy as np
 import rasterio
-from rasterio.warp import Resampling, reproject
 
 from greensenti.raster import rescale_band
 
@@ -668,7 +667,7 @@ def bsi(
     Bare Soil Index (BSI) is a numerical indicator to capture soil variations.
 
     :param b2: BLUE band (B02 for Sentinel-2 (10m)).
-    :param b4: RED band (B04 for Sentinel-2 (20m)).
+    :param b4: RED band (B04 for Sentinel-2 (10m)).
     :param b8: NIR band (B08 for Sentinel-2 (10m)).
     :param b11: SWIR band (B11 for Sentinel-2 (20m)).
     :param output: Path to output file.
