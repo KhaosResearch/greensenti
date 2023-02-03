@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Add `skip` parameter to download functions to remove specific products from the query results.
+- Add `override_no_data` parameter to mask functions, useful if you want to mask on a different value to the nodata specify in the kwargs.
 
 ### Changes
 
