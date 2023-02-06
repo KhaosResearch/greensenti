@@ -98,6 +98,7 @@ def cloud_mask(
     cloud_mask_10m, output_kwargs = rescale_band(cloud_mask, kwargs)
 
     if output:
+        output_kwargs.update(driver="GTiff", dtype=rasterio.int8, count=1)
         with rasterio.open(output, "w", **output_kwargs) as f:
             f.write(cloud_mask_10m)
 

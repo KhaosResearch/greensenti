@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Download functions on the `dhus` module are now generators of dictionaries instead of a complete dataframe at the end of the download. This allow to each product to be process before the download of all of them is complete.
 - Changed JSON representation of dates from epoch to ISO 8601.
+- Changed behaviour of `band_arithmetic.cloud_mask` to return a GeoTiff instead of a .jp2
 
 ### Removed
 
