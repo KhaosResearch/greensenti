@@ -13,7 +13,7 @@ from shapely.geometry import Polygon, shape
 from shapely.ops import transform
 
 
-def crop_by_shape(filename: Path, geom: Polygon, outfile: str, override_no_data) -> None:
+def crop_by_shape(filename: Path, geom: Polygon, outfile: str, override_no_data: float = None) -> None:
     """
     Crop input file with a polygon mask.
 
