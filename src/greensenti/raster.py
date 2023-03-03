@@ -13,35 +13,31 @@ from shapely.geometry import Polygon, shape
 from shapely.ops import transform
 
 
-def crop_by_shape(filename: Path, geom: Polygon, outfile: str, override_no_data: float = None) -> None:
+def crop_by_shape(filename: Path, geom: Polygon, output: str, override_no_data: float | None = None) -> None:
     """
     Crop input file with a polygon mask.
 
     :param filename: Path to input image.
-    :param geom: Geometry.
-    :param outfile: Path to output file.
-    :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if the fill value is included in the raster
+    :param geom: Geometry in GeoJSON format.
+    :param output: Path to output file.
+    :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if this value is present in the raster.
     """
-    # Load the raster, mask it by the polygon and crop it.
     with rasterio.open(filename) as src:
-        if override_no_data is not None:
-            if override_no_data in src.read():
-                raise ValueError(f"Mask override no data value is present in source raster:\n{override_no_data} is present in raster")
+        if override_no_data in src.read():
+            raise ValueError(f"Value {override_no_data} is present in the raster.")
         out_image, out_transform = mask.mask(src, shapes=[geom], crop=True, nodata=override_no_data)
     out_meta = src.meta.copy()
-
-    # Save the resulting raster.
     out_meta.update(
         {"driver": "GTiff", "height": out_image.shape[1], "width": out_image.shape[2], "transform": out_transform}
     )
-    with rasterio.open(outfile, "w", **out_meta) as dest:
+    with rasterio.open(output, "w", **out_meta) as dest:
         dest.write(out_image)
 
 
-def project_shape(geom: Polygon, scs="epsg:4326", dcs="epsg:32630") -> Polygon:
+def project_shape(geom: Polygon, scs: str = "epsg:4326", dcs: str = "epsg:32630") -> Polygon:
     """
     Project a shape from a source coordinate system to another one.
-    The source coordinate system can be obtain with `rasterio` as illustrated next:
+    The source coordinate system can be obtained with `rasterio` as illustrated next:
 
     >>> import rasterio
     >>> print(rasterio.open('example.jp2').crs)
@@ -56,41 +52,31 @@ def project_shape(geom: Polygon, scs="epsg:4326", dcs="epsg:32630") -> Polygon:
     """
     init_crs = pyproj.CRS(scs)
     final_crs = pyproj.CRS(dcs)
-
     project = pyproj.Transformer.from_crs(init_crs, final_crs, always_xy=True).transform
-
-    # Applies projection to the geometry.
     return transform(project, shape(geom))
 
 
-def save_as_img(raster: np.array, output: Path, **kwargs) -> Path:
+def save_as_img(raster: np.ndarray, output: Path, **kwargs) -> None:
     """
     Save raster image to file.
+    :param raster: Source raster image.
+    :param output: Path to output file.
+    :param kwargs: Additional arguments to pass to `matplotlib.pyplot.imshow`.
     """
     fig, ax = plt.subplots(figsize=plt.figaspect(raster), frameon=False)
     fig.subplots_adjust(0, 0, 1, 1)
 
     ax.imshow(raster, **kwargs)
-
-    # Export to file.
     fig.savefig(output, dpi=300, transparent=True)
-
-    # Close figure to avoid overflow.
     plt.close(fig)
 
-    return output
 
-
-def transform_image(
-    band: Path,
-    color_map: Optional[str],
-    output: Path,
-) -> Path:
+def transform_image(band: Path, color_map: Optional[str], output: Path) -> None:
     """
-    Transform raster to image (see full list of accepted drivers at https://gdal.org/drivers/raster/index.html).
+    Transform raster to image. See full list of accepted drivers at https://gdal.org/drivers/raster/index.html.
 
     :param band: TIF band image.
-    :param color_map: Color map to apply.
+    :param color_map: Color map to use.
     :param output: Path to output file.
     """
     with rasterio.open(band) as b:
@@ -111,44 +97,44 @@ def transform_image(
 
     save_as_img(raster=arr, output=output, cmap=color_map)
 
-    return output
 
-
-def apply_mask(filename: Path, geojson: Path, output: Path = Path("."), override_no_data: float = None) -> Path:
+def apply_mask(
+    filename: Path, geojson: Path, output: Path | None = None, override_no_data: float | None = None
+) -> Path:
     """
     Crop image data (jp2 imagery file) by shape.
 
     :param filename: Path to input file.
-    :param geojson: Geometry.
-    :param output: Path to output file.
-    :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if the fill value is included in the raster
+    :param geojson: Geometry in GeoJSON format.
+    :param output: Path to output file. If not provided, the output will be saved in the same directory as the input file.
+    :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if this value is present in the raster.
     :return: Path to output file.
     """
-    # Make sure the output dir exists.
-    if not output.parent.is_dir():
+    if not output:
+        output = filename.parent / f"{filename.stem}_masked.tif"
+
+    if not output.parent.exists():
         output.parent.mkdir(parents=True)
 
-    # Load geojson file*
-    # *see: http://geojson.io/
     geojson = read_geojson(geojson)
-    shape = project_shape(geojson["features"][0]["geometry"])
+    shp = project_shape(geojson["features"][0]["geometry"])
 
-    # Mask product based on location.
-    crop_by_shape(filename=filename, outfile=str(output), geom=shape, override_no_data=override_no_data)
+    crop_by_shape(filename=filename, output=str(output), geom=shp, override_no_data=override_no_data)
 
     return output
 
 
-def rescale_band(band: np.array, kwargs: dict) -> Tuple[np.array, dict]:
+def rescale_band(band: np.ndarray, kwargs: dict) -> Tuple[np.ndarray, dict]:
     """
     Rescale band image data to 10 meters per pixel resolution.
 
-    :param band: Band image array.
+    :param band: Band image array data.
     :param kwargs: Band image metadata.
-    :return: Band rescaled.
+    :return: Rescaled band image array data and metadata.
     """
     img_resolution = kwargs["transform"][0]
     scale_factor = img_resolution / 10
+
     # Scale the image to a resolution of 10m per pixel
     if img_resolution != 10:
         new_kwargs = kwargs.copy()

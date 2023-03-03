@@ -7,15 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## 0.7.0
+
 ### Added
+
 - Add `skip` parameter to download functions to remove specific products from the query results.
 - Add `override_no_data` parameter to mask functions, useful if you want to mask on a different value to the nodata specify in the kwargs.
+- Include `ruff` linter and `pytest-cov` to the CI pipeline.
+- Remove `setup.py` and `setup.cfg` in favour of `pyproject.toml`.
 
 ### Changes
 
 - Download functions on the `dhus` module are now generators of dictionaries instead of a complete dataframe at the end of the download. This allow to each product to be process before the download of all of them is complete.
 - Changed JSON representation of dates from epoch to ISO 8601.
 - Changed behaviour of `band_arithmetic.cloud_mask` to return a GeoTiff instead of a .jp2
+- `crop_by_shape`, `save_as_img` and `transform_image` no longer returns the output path.
 
 ### Removed
 
