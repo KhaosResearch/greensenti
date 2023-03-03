@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import rasterio
@@ -10,23 +9,24 @@ from greensenti.raster import rescale_band
 np.seterr(divide="ignore", invalid="ignore")
 
 
-def cloud_cover_percentage(
-    b3: Path,
-    b4: Path,
-    b11: Path,
-    tau: float = 0.2,
-    *,
-    output: Optional[Path] = None,
-) -> float:
+def read(filename: str | Path) -> tuple[np.ndarray, dict]:
+    """
+    Read raster data from file.
+    :param filename: Path to input file.
+    :return: Raster d-array and metadata.
+    """
+    with rasterio.open(filename) as f:
+        B = f.read().astype(np.float32)
+        B[B == 0] = np.nan
+        kwargs = f.meta
+    return B, kwargs
+
+
+def cloud_cover_percentage(b3: Path, b4: Path, b11: Path, tau: float = 0.2, *, output: Path | None = None) -> float:
     """
     Computes cloud percentage of an image based on:
 
     * https://github.com/sentinel-hub/custom-scripts/tree/master/sentinel-2/cby_cloud_detection#
-
-    ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
-     This value is used to define which pixels should be masked. See also:
-
-    * https://docs.digitalearthafrica.org/en/latest/data_specs/Sentinel-2_Level-2A_specs.html
 
     :param b3: B03 band for Sentinel-2 (20m).
     :param b4: B04 band for Sentinel-2 (20m).
@@ -35,67 +35,49 @@ def cloud_cover_percentage(
     :param output: Path to output file.
     :return: Cloud cover percentage.
     """
-    with rasterio.open(b3) as green:
-        GREEN = green.read().astype(np.float32)
-        GREEN[GREEN == 0] = np.nan
-        kwargs = green.meta
-    with rasterio.open(b4) as red:
-        RED = red.read().astype(np.float32)
-        RED[RED == 0] = np.nan
-    with rasterio.open(b11) as swir11:
-        SWIR11 = swir11.read().astype(np.float32)
-        SWIR11[SWIR11 == 0] = np.nan
+    green, kwargs = read(b3)
+    red, _ = read(b4)
+    swir11, _ = read(b11)
 
     # Convert to surface reflectance.
-    GREEN = GREEN / 10000
-    RED = RED / 10000
-    SWIR11 = SWIR11 / 10000
+    green = green / 10000
+    red = red / 10000
+    swir11 = swir11 / 10000
 
     # Detect which elements are cloud based on Braaten-Cohen-Yang cloud detector.
-    bRatio = (GREEN - 0.175) / (0.39 - 0.175)
-    NGDR = (GREEN - RED) / (GREEN + RED)
+    bRatio = (green - 0.175) / (0.39 - 0.175)
+    ngdr = (green - red) / (green + red)
 
-    is_cloud = ((bRatio > 1) | ((bRatio > 0) & (NGDR > 0))) & (GREEN != 0) & (SWIR11 > tau)
+    is_cloud = ((bRatio > 1) | ((bRatio > 0) & (ngdr > 0))) & (green != 0) & (swir11 > tau)
 
-    # Compute and return cloud percentage.
-    cloud_cover_percentage = np.count_nonzero(is_cloud) * 100 / np.count_nonzero(GREEN)
+    cc_percentage = np.count_nonzero(is_cloud) * 100 / np.count_nonzero(green)
 
     if output:
-        # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
             f.write(is_cloud.astype(rasterio.float32))
 
-    return cloud_cover_percentage
+    return cc_percentage
 
 
-def cloud_mask(
-    scl: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def cloud_mask(scl: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Computes cloud mask of an image based on the SCL raster provided by Sentinel.
 
-    ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
-     This value is used to define which pixels should be masked. See also:
-
-    * https://docs.digitalearthafrica.org/en/latest/data_specs/Sentinel-2_Level-2A_specs.html
-
     :param scl: SCL band for Sentinel-2 (20m).
     :param output: Path to output file.
-    :return: Cloud cover mask.
+    :return: Cloud cover mask (0 - no cloud, 1 - cloud).
     """
     scl_cloud_values = [3, 8, 9, 10, 11]  # Classification band's cloud-related values.
 
-    with rasterio.open(scl, "r") as cloud_mask_file:
-        kwargs = cloud_mask_file.meta
-        cloud_mask = cloud_mask_file.read()
+    with rasterio.open(scl, "r") as f:
+        kwargs = f.meta
+        mask = f.read()
 
     # Calculate cloud mask from Sentinel's cloud related values.
-    cloud_mask = np.isin(cloud_mask, scl_cloud_values).astype(np.int8)
+    mask = np.isin(mask, scl_cloud_values).astype(np.int8)
 
-    cloud_mask_10m, output_kwargs = rescale_band(cloud_mask, kwargs)
+    cloud_mask_10m, output_kwargs = rescale_band(mask, kwargs)
 
     if output:
         output_kwargs.update(driver="GTiff", dtype=rasterio.int8, count=1)
@@ -105,20 +87,9 @@ def cloud_mask(
     return cloud_mask_10m
 
 
-def true_color(
-    r: Path,
-    g: Path,
-    b: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def true_color(r: Path, g: Path, b: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Computes true color image composite (RGB).
-
-    ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
-     This value is used to define which pixels should be masked. See also:
-
-    * https://docs.digitalearthafrica.org/en/latest/data_specs/Sentinel-2_Level-2A_specs.html
 
     :param r: RED - B04 band for Sentinel-2 (10m).
     :param g: GREEN - B03 band for Sentinel-2 (10m).
@@ -126,25 +97,20 @@ def true_color(
     :param output: Path to output file.
     :return: True color image.
     """
-    with rasterio.open(r) as red:
-        red_band = red.read().astype(np.float32)
-        kwargs = red.meta
-    with rasterio.open(g) as green:
-        green_band = green.read().astype(np.float32)
-    with rasterio.open(b) as blue:
-        blue_band = blue.read().astype(np.float32)
+    red, kwargs = read(r)
+    green, _ = read(g)
+    blue, _ = read(b)
 
-    # Create true color image.
-    # Adjust each band by the min-max so it will plot as RGB.
-    rgb_image_raw = np.concatenate((red_band, green_band, blue_band), axis=0)
+    # Compose true color image.
+    # Adjust each band by the min-max, so it will plot as RGB.
+    rgb_image_raw = np.concatenate((red, green, blue), axis=0)
 
-    max_pixel_value = rgb_image_raw.max()
+    max_pixel_value = rgb_image_raw.max(initial=0)
     rgb_image = np.multiply(rgb_image_raw, 255.0)
     rgb_image = np.divide(rgb_image, max_pixel_value)
     rgb_image = rgb_image.astype(np.uint8)
 
     if output:
-        # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=0, count=3)
         with rasterio.open(output, "w", **kwargs) as rgb:
             rgb.write(rgb_image_raw)
@@ -152,12 +118,7 @@ def true_color(
     return rgb_image
 
 
-def moisture(
-    b8a: Path,
-    b11: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def moisture(b8a: Path, b11: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute moisture index.
 
@@ -171,13 +132,8 @@ def moisture(
     :param output: Path to output file.
     :return: Moisture index.
     """
-    with rasterio.open(b8a) as band:
-        band_8a = band.read().astype(np.float32)
-        band_8a[band_8a == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b11) as band:
-        band_11 = band.read().astype(np.float32)
-        band_11[band_11 == 0] = np.nan
+    band_8a, kwargs = read(b8a)
+    band_11, _ = read(b11)
 
     moisture = (band_8a - band_11) / (band_8a + band_11)
 
@@ -185,7 +141,6 @@ def moisture(
     moisture[moisture == -np.inf] = np.nan
 
     if output:
-        # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
             f.write(moisture.astype(rasterio.float32))
@@ -193,12 +148,7 @@ def moisture(
     return moisture
 
 
-def ndvi(
-    b4: Path,
-    b8: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def ndvi(b4: Path, b8: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute Normalized Difference Vegetation Index (NDVI).
 
@@ -207,13 +157,6 @@ def ndvi(
     positive values represent shrub and grassland (approximately 0.2 to 0.4), while high values indicate
     temperate and tropical rainforests (values approaching 1).
 
-    ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
-     This value is used to define which pixels should be masked. See also:
-
-    * https://docs.digitalearthafrica.org/en/latest/data_specs/Sentinel-2_Level-2A_specs.html
-
-    ..note:: https://eos.com/index-stack/
-
     ..note:: https://medium.com/analytics-vidhya/satellite-imagery-analysis-with-python-3f8ccf8a7c32
 
     :param b4: RED - B04 band for Sentinel-2 (10m).
@@ -221,21 +164,15 @@ def ndvi(
     :param output: Path to output file.
     :return: NDVI index.
     """
-    with rasterio.open(b4) as red:
-        RED = red.read().astype(np.float32)
-        RED[RED == 0] = np.nan
-        kwargs = red.meta
-    with rasterio.open(b8) as nir:
-        NIR = nir.read().astype(np.float32)
-        NIR[NIR == 0] = np.nan
+    red, kwargs = read(b4)
+    nir, _ = read(b8)
 
-    ndvi = (NIR - RED) / (NIR + RED)
+    ndvi = (nir - red) / (nir + red)
 
     ndvi[ndvi == np.inf] = np.nan
     ndvi[ndvi == -np.inf] = np.nan
 
     if output:
-        # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
             f.write(ndvi.astype(rasterio.float32))
@@ -243,20 +180,10 @@ def ndvi(
     return ndvi
 
 
-def ndsi(
-    b3: Path,
-    b11: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def ndsi(b3: Path, b11: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute Normalized Difference Snow Index (NDSI) index.
     Values above 0.42 are usually snow.
-
-    ..note:: In Sentinel-2 Level-2A products, zero values are reserved for 'No Data'.
-     This value is used to define which pixels should be masked. See also:
-
-    * https://docs.digitalearthafrica.org/en/latest/data_specs/Sentinel-2_Level-2A_specs.html
 
     ..note:: https://eos.com/index-stack/
 
@@ -265,22 +192,16 @@ def ndsi(
     :param output: Path to output file.
     :return: NDSI index.
     """
-    with rasterio.open(b3) as band:
-        band_3 = band.read().astype(np.float32)
-        band_3[band_3 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b11) as band:
-        band_11 = band.read().astype(np.float32)
-        band_11[band_11 == 0] = np.nan
+    band_3, kwargs = read(b3)
+    band_11, _ = read(b11)
 
     ndsi = (band_3 - band_11) / (band_3 + band_11)
-    ndsi = (ndsi > 0.42) * 1.0  # TODO apply threshold (values above 0.42 are regarded as snowy)
+    ndsi = (ndsi > 0.42) * 1.0  # TODO - apply threshold (values above 0.42 are regarded as snowy)
 
     ndsi[ndsi == np.inf] = np.nan
     ndsi[ndsi == -np.inf] = np.nan
 
     if output:
-        # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as f:
             f.write(ndsi.astype(rasterio.float32))
@@ -288,12 +209,7 @@ def ndsi(
     return ndsi
 
 
-def ndwi(
-    b3: Path,
-    b8: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def ndwi(b3: Path, b8: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute Normalized Difference Water Index (NDWI) index.
 
@@ -309,13 +225,8 @@ def ndwi(
     :param output: Path to output file.
     :return: NDWI index.
     """
-    with rasterio.open(b3) as band:
-        band_3 = band.read().astype(np.float32)
-        band_3[band_3 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b8) as band:
-        band_8 = band.read().astype(np.float32)
-        band_8[band_8 == 0] = np.nan
+    band_3, kwargs = read(b3)
+    band_8, _ = read(b8)
 
     ndwi = (band_3 - band_8) / (band_3 + band_8)
 
@@ -323,7 +234,6 @@ def ndwi(
     ndwi[ndwi == -np.inf] = np.nan
 
     if output:
-        # Update kwargs to reflect change in data type.
         kwargs.update(driver="GTiff", dtype=rasterio.float32, nodata=np.nan, count=1)
         with rasterio.open(output, "w", **kwargs) as gtif:
             gtif.write(ndwi.astype(rasterio.float32))
@@ -331,12 +241,7 @@ def ndwi(
     return ndwi
 
 
-def evi2(
-    b4: Path,
-    b8: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def evi2(b4: Path, b8: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute Enhanced Vegetation Index 2 (EVI2) index.
 
@@ -345,13 +250,8 @@ def evi2(
     :param output: Path to output file.
     :return: EVI2 index.
     """
-    with rasterio.open(b4) as band:
-        band_4 = band.read().astype(np.float32)
-        band_4[band_4 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b8) as band:
-        band_8 = band.read().astype(np.float32)
-        band_8[band_8 == 0] = np.nan
+    band_4, kwargs = read(b4)
+    band_8, _ = read(b8)
 
     evi2 = 2.4 * ((band_8 - band_4) / (band_8 + band_4 + 1.0))
 
@@ -366,7 +266,7 @@ def evi2(
     return evi2
 
 
-def osavi(b4: Path, b8: Path, Y: float = 0.16, *, output: Optional[Path] = None) -> np.array:
+def osavi(b4: Path, b8: Path, Y: float = 0.16, *, output: Path | None = None) -> np.ndarray:
     """
     Optimized Soil Adjusted Vegetation Index (OSAVI) index.
 
@@ -376,13 +276,8 @@ def osavi(b4: Path, b8: Path, Y: float = 0.16, *, output: Optional[Path] = None)
     :param output: Path to output file.
     :return: OSAVI index.
     """
-    with rasterio.open(b4) as band:
-        band_4 = band.read().astype(np.float32)
-        band_4[band_4 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b8) as band:
-        band_8 = band.read().astype(np.float32)
-        band_8[band_8 == 0] = np.nan
+    band_4, kwargs = read(b4)
+    band_8, _ = read(b8)
 
     osavi = (1 + Y) * (band_8 - band_4) / (band_8 + band_4 + Y)
 
@@ -397,12 +292,7 @@ def osavi(b4: Path, b8: Path, Y: float = 0.16, *, output: Optional[Path] = None)
     return osavi
 
 
-def ndre(
-    b5: Path,
-    b9: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def ndre(b5: Path, b9: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Normalized Difference NIR/Rededge Normalized Difference Red-Edge (NDRE) index.
 
@@ -411,13 +301,8 @@ def ndre(
     :param output: Path to output file.
     :return: NDRE index.
     """
-    with rasterio.open(b5) as band:
-        band_5 = band.read().astype(np.float32)
-        band_5[band_5 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b9) as band:
-        band_9 = band.read().astype(np.float32)
-        band_9[band_9 == 0] = np.nan
+    band_5, kwargs = read(b5)
+    band_9, _ = read(b9)
 
     ndre = (band_9 - band_5) / (band_9 + band_5)
 
@@ -432,12 +317,7 @@ def ndre(
     return ndre
 
 
-def mndwi(
-    b3: Path,
-    b11: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def mndwi(b3: Path, b11: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Modified NDWI (MNDWI) index.
 
@@ -446,13 +326,8 @@ def mndwi(
     :param output: Path to output file.
     :return: MNDWI index.
     """
-    with rasterio.open(b3) as band:
-        band_3 = band.read().astype(np.float32)
-        band_3[band_3 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b11) as band:
-        band_11 = band.read().astype(np.float32)
-        band_11[band_11 == 0] = np.nan
+    band_3, kwargs = read(b3)
+    band_11, _ = read(b11)
 
     mndwi = (band_3 - band_11) / (band_3 + band_11)
 
@@ -467,13 +342,7 @@ def mndwi(
     return mndwi
 
 
-def bri(
-    b3: Path,
-    b5: Path,
-    b8: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def bri(b3: Path, b5: Path, b8: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Browning Reflectance Index (BRI) index.
 
@@ -483,18 +352,9 @@ def bri(
     :param output: Path to output file.
     :return: BRI index.
     """
-    with rasterio.open(b3) as band:
-        band_3 = band.read().astype(np.float32)
-        band_3[band_3 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b5) as band:
-        band_5_20m = band.read().astype(np.float32)
-        kwargs_5_20m = band.meta
-        band_5, _ = rescale_band(band_5_20m, kwargs_5_20m)
-        band_5[band_5 == 0] = np.nan
-    with rasterio.open(b8) as band:
-        band_8 = band.read().astype(np.float32)
-        band_8[band_8 == 0] = np.nan
+    band_3, kwargs = read(b3)
+    band_5, _ = read(b5)
+    band_8, _ = read(b8)
 
     bri = (1 / band_3 - 1 / band_5) / band_8
 
@@ -509,7 +369,7 @@ def bri(
     return bri
 
 
-def evi(b2: Path, b4: Path, b8: Path, *, output: Optional[Path] = None) -> np.array:
+def evi(b2: Path, b4: Path, b8: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute Enhanced Vegetation Index (EVI) index.
     Its value ranges from -1 to 1, with healthy vegetation generally around 0.20 to 0.80.
@@ -525,16 +385,9 @@ def evi(b2: Path, b4: Path, b8: Path, *, output: Optional[Path] = None) -> np.ar
     :param output: Path to output file.
     :return: EVI index.
     """
-    with rasterio.open(b2) as band:
-        band_2 = band.read().astype(np.float32)
-        band_2[band_2 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b4) as band:
-        band_4 = band.read().astype(np.float32)
-        band_4[band_4 == 0] = np.nan
-    with rasterio.open(b8) as band:
-        band_8 = band.read().astype(np.float32)
-        band_8[band_8 == 0] = np.nan
+    band_2, kwargs = read(b2)
+    band_4, _ = read(b4)
+    band_8, _ = read(b8)
 
     evi = (2.5 * (band_8 - band_4)) / ((band_8 + 6 * band_4 - 7.5 * band_2) + 1)
 
@@ -549,12 +402,7 @@ def evi(b2: Path, b4: Path, b8: Path, *, output: Optional[Path] = None) -> np.ar
     return evi
 
 
-def ndyi(
-    b2: Path,
-    b3: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def ndyi(b2: Path, b3: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute Normalized Difference Yellow Index (NDYI) index.
 
@@ -565,13 +413,8 @@ def ndyi(
     :param output: Path to output file.
     :return: NDYI index.
     """
-    with rasterio.open(b2) as band:
-        band_2 = band.read().astype(np.float32)
-        band_2[band_2 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b3) as band:
-        band_3 = band.read().astype(np.float32)
-        band_3[band_3 == 0] = np.nan
+    band_2, kwargs = read(b2)
+    band_3, _ = read(b3)
 
     ndyi = (band_3 - band_2) / (band_3 + band_2)
 
@@ -586,12 +429,7 @@ def ndyi(
     return ndyi
 
 
-def ri(
-    b3: Path,
-    b4: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def ri(b3: Path, b4: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute Normalized Difference Red/Green Redness (RI) index.
 
@@ -600,13 +438,8 @@ def ri(
     :param output: Path to output file.
     :return: RI index.
     """
-    with rasterio.open(b3) as band:
-        band_3 = band.read().astype(np.float32)
-        band_3[band_3 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b4) as band:
-        band_4 = band.read().astype(np.float32)
-        band_4[band_4 == 0] = np.nan
+    band_3, kwargs = read(b3)
+    band_4, _ = read(b4)
 
     ri = (band_4 - band_3) / (band_4 + band_3)
 
@@ -621,12 +454,7 @@ def ri(
     return ri
 
 
-def cri1(
-    b2: Path,
-    b3: Path,
-    *,
-    output: Optional[Path] = None,
-) -> np.array:
+def cri1(b2: Path, b3: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Compute Carotenoid Reflectance (CRI1) index.
 
@@ -635,13 +463,8 @@ def cri1(
     :param output: Path to output file.
     :return: CRI1 index.
     """
-    with rasterio.open(b2) as band:
-        band_2 = band.read().astype(np.float32)
-        band_2[band_2 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b3) as band:
-        band_3 = band.read().astype(np.float32)
-        band_3[band_3 == 0] = np.nan
+    band_2, kwargs = read(b2)
+    band_3, _ = read(b3)
 
     cri1 = (1 / band_2) / (1 / band_3)
 
@@ -656,14 +479,7 @@ def cri1(
     return cri1
 
 
-def bsi(
-    b2: Path,
-    b4: Path,
-    b8: Path,
-    b11: Path,
-    *,
-    output: Optional[Path],
-) -> np.array:
+def bsi(b2: Path, b4: Path, b8: Path, b11: Path, *, output: Path | None = None) -> np.ndarray:
     """
     Bare Soil Index (BSI) is a numerical indicator to capture soil variations.
 
@@ -674,23 +490,11 @@ def bsi(
     :param output: Path to output file.
     :return: BSI index.
     """
-    with rasterio.open(b2) as band:
-        band_2 = band.read().astype(np.float32)
-        band_2[band_2 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b4) as band:
-        band_4 = band.read().astype(np.float32)
-        kwargs = band.meta
-        band_4[band_4 == 0] = np.nan
-    with rasterio.open(b8) as band:
-        band_8 = band.read().astype(np.float32)
-        band_8[band_8 == 0] = np.nan
-        kwargs = band.meta
-    with rasterio.open(b11) as band:
-        band_11_20m = band.read().astype(np.float32)
-        kwargs_11_20m = band.meta
-        band_11, _ = rescale_band(band_11_20m, kwargs_11_20m)
-        band_11[band_11 == 0] = np.nan
+    band_2, kwargs = read(b2)
+    band_4, _ = read(b4)
+    band_8, _ = read(b8)
+    band_11, kwargs_11 = read(b11)
+    band_11, _ = rescale_band(band_11, kwargs_11)
 
     bsi = ((band_11 + band_4) - (band_8 + band_2)) / ((band_11 + band_4) + (band_8 + band_2))
 

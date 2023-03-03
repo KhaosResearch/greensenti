@@ -13,12 +13,13 @@ try:
     from google.cloud import storage
 except ImportError:
     GCLOUD_DISABLED = True
+    storage = None
 
 
 def download_by_title(
     text_match: str,
-    from_date: Union[str, datetime] = None,
-    to_date: Union[str, datetime] = None,
+    from_date: str | datetime = None,
+    to_date: str | datetime = None,
     *,
     max_clouds: int = 100,
     output: Path = Path("."),
@@ -109,13 +110,13 @@ def download_by_geometry(
 
 def download(
     geojson: Path = None,
-    text_match: str = "*",
+    text_match: str | None = "*",
     from_date: Union[str, datetime] = None,
     to_date: Union[str, datetime] = None,
     *,
     max_clouds: int = 100,
     output: Path = Path("."),
-    skip: List[str] = None,
+    skip: list[str] = None,
     dhus_username: str = os.environ.get("DHUS_USERNAME", None),
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
@@ -334,11 +335,11 @@ def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Pat
 
 def get_gcloud_path(title: str) -> str:
     """
-    Gets the google cloud bucket prefix for a given Sentinel-2 product.
+    Gets the Google cloud bucket prefix for a given Sentinel-2 product.
     Products are group by tile id or MGRS coordinates.
 
     :param title: Sentinel-2 title.
-    :return: Google Cloud path for title
+    :return: Google Cloud path for title.
     """
     tile_id = title.split("_T")[1]  # This is always a 2 digit and 3 letter ID  E.g: 30SUF
     tile_number = str(tile_id[0:2])

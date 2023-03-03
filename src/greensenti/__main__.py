@@ -4,7 +4,7 @@ import greensenti.band_arithmetic as ba
 from greensenti import dhus, raster
 
 
-def main():
+def cli():
     cli_map = {
         "band-arithmetic": {
             "cloud-mask": ba.cloud_mask,
@@ -33,4 +33,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    cli()
