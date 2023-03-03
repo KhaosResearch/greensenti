@@ -13,17 +13,21 @@ from shapely.geometry import Polygon, shape
 from shapely.ops import transform
 
 
-def crop_by_shape(filename: Path, geom: Polygon, outfile: str) -> None:
+def crop_by_shape(filename: Path, geom: Polygon, outfile: str, override_no_data: float = None) -> None:
     """
     Crop input file with a polygon mask.
 
     :param filename: Path to input image.
     :param geom: Geometry.
     :param outfile: Path to output file.
+    :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if the fill value is included in the raster
     """
     # Load the raster, mask it by the polygon and crop it.
     with rasterio.open(filename) as src:
-        out_image, out_transform = mask.mask(src, shapes=[geom], crop=True)
+        if override_no_data is not None:
+            if override_no_data in src.read():
+                raise ValueError(f"Mask override no data value is present in source raster:\n{override_no_data} is present in raster")
+        out_image, out_transform = mask.mask(src, shapes=[geom], crop=True, nodata=override_no_data)
     out_meta = src.meta.copy()
 
     # Save the resulting raster.
@@ -110,13 +114,14 @@ def transform_image(
     return output
 
 
-def apply_mask(filename: Path, geojson: Path, output: Path = Path(".")) -> Path:
+def apply_mask(filename: Path, geojson: Path, output: Path = Path("."), override_no_data: float = None) -> Path:
     """
     Crop image data (jp2 imagery file) by shape.
 
     :param filename: Path to input file.
     :param geojson: Geometry.
     :param output: Path to output file.
+    :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if the fill value is included in the raster
     :return: Path to output file.
     """
     # Make sure the output dir exists.
@@ -129,7 +134,7 @@ def apply_mask(filename: Path, geojson: Path, output: Path = Path(".")) -> Path:
     shape = project_shape(geojson["features"][0]["geometry"])
 
     # Mask product based on location.
-    crop_by_shape(filename=filename, outfile=str(output), geom=shape)
+    crop_by_shape(filename=filename, outfile=str(output), geom=shape, override_no_data=override_no_data)
 
     return output
 

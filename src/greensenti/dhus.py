@@ -1,11 +1,11 @@
+import json
 import os
-import shutil
 import zipfile
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import List, Union
+from typing import Iterator, List, Union
 
-import pandas as pd
+from sentinelsat.exceptions import LTAError, LTATriggered
 from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 
 try:
@@ -20,14 +20,14 @@ def download_by_title(
     from_date: Union[str, datetime] = None,
     to_date: Union[str, datetime] = None,
     *,
-    unzip: bool = False,
     max_clouds: int = 100,
     output: Path = Path("."),
+    skip: List[str] = None,
     dhus_username: str = os.environ.get("DHUS_USERNAME", None),
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
     gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
-) -> pd.DataFrame:
+) -> Iterator[dict]:
     """
     Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud by a text match with the product title.
 
@@ -38,22 +38,22 @@ def download_by_title(
     :param from_date: From date %Y-%m-%d (begin date).
     :param to_date: To date %Y-%m-%d (end date).
     :param max_clouds: Max cloud percentage.
-    :param unzip: Whether to skip product unzip.
     :param output: Output folder.
+    :param skip: List of product titles to ignore
     :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
     :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
-    :return: pandas dataframe with the product metadata and download status
+    :return: Yields an iterator of dictionaries with the product metadata and download status
     """
-    return download(
+    yield from download(
         geojson=None,
         text_match=text_match,
         from_date=from_date,
         to_date=to_date,
-        unzip=unzip,
         max_clouds=max_clouds,
         output=output,
+        skip=skip,
         dhus_username=dhus_username,
         dhus_password=dhus_password,
         dhus_host=dhus_host,
@@ -66,14 +66,14 @@ def download_by_geometry(
     from_date: Union[str, datetime] = None,
     to_date: Union[str, datetime] = None,
     *,
-    unzip: bool = False,
     max_clouds: int = 100,
     output: Path = Path("."),
+    skip: List[str] = None,
     dhus_username: str = os.environ.get("DHUS_USERNAME", None),
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
     gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
-) -> pd.DataFrame:
+) -> Iterator[dict]:
     """
     Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud by a given geometry in GeoJSON format.
 
@@ -84,22 +84,22 @@ def download_by_geometry(
     :param from_date: From date %Y-%m-%d (begin date).
     :param to_date: To date %Y-%m-%d (end date).
     :param max_clouds: Max cloud percentage.
-    :param unzip: Whether to skip product unzip.
     :param output: Output folder.
+    :param skip: List of product titles to ignore
     :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
     :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
-    :return: pandas dataframe with the product metadata and download status
+    :return: Yields an iterator of dictionaries with the product metadata and download status
     """
-    return download(
+    yield from download(
         geojson=geojson,
         text_match=None,
         from_date=from_date,
         to_date=to_date,
-        unzip=unzip,
         max_clouds=max_clouds,
         output=output,
+        skip=skip,
         dhus_username=dhus_username,
         dhus_password=dhus_password,
         dhus_host=dhus_host,
@@ -113,14 +113,14 @@ def download(
     from_date: Union[str, datetime] = None,
     to_date: Union[str, datetime] = None,
     *,
-    unzip: bool = False,
     max_clouds: int = 100,
     output: Path = Path("."),
+    skip: List[str] = None,
     dhus_username: str = os.environ.get("DHUS_USERNAME", None),
     dhus_password: str = os.environ.get("DHUS_PASSWORD", None),
     dhus_host: str = os.environ.get("DHUS_HOST", None),
     gcloud: Path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", None),
-) -> pd.DataFrame:
+) -> Iterator[dict]:
     """
     Downloads Sentinel-2 products from DHuS (Data Hub Service) or Google Cloud.
 
@@ -132,13 +132,13 @@ def download(
     :param from_date: From date %Y-%m-%d (begin date).
     :param to_date: To date %Y-%m-%d (end date).
     :param max_clouds: Max cloud percentage.
-    :param unzip: Whether to skip product unzip.
     :param output: Output folder.
+    :param skip: List of product titles to ignore
     :param dhus_username: Username from dhus service. Taken from enviroment as DHUS_USERNAME if available.
     :param dhus_password: Password from dhus service. Taken from enviroment as DHUS_PASSWORD if available.
     :param dhus_host: Host from dhus service. Taken from enviroment as DHUS_HOST if available.
     :param gcloud: Google Cloud credentials file. Taken from enviroment as GOOGLE_APPLICATION_CREDENTIALS if available.
-    :return: pandas dataframe with the product metadata and download status
+    :return: Yields an iterator of dictionaries with the product metadata and download status
     """
     # Only use Google Cloud as backend is credentials are passed
     # and the optional dependency is installed
@@ -190,83 +190,85 @@ def download(
 
     # Get the list of products.
     products_df = sentinel_api.to_dataframe(products)
+    if skip:
+        products_df = products_df[~products_df["title"].isin(skip)]
     ids = products_df.index
 
     print(f"Found {len(ids)} scenes between {from_date} and {to_date}")
 
     if not gcloud:
-        status_df = copernicous_download(ids, sentinel_api, output=output)
-        products_df = pd.merge(products_df, status_df, how="outer", on="uuid")
+        for product in copernicous_download(ids, sentinel_api, output=output):
+            product_json_str = products_df[products_df["id"] == product["id"]].to_json(
+                orient="records", date_format="iso"
+            )
+            product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
+            yield {**product_json, **product}
     else:
         gcloud_api = gcloud_bucket()
         # Google cloud doesn't utilize ids, only titles
         titles = products_df["title"]
-        status_df = gcloud_download(titles, gcloud_api, output=output)
-        products_df = pd.merge(products_df, status_df, how="outer", on="title")
-
-    print(f"Status: {status_df}")
-
-    if unzip:
-        for product in products_df.iterrows():
-            title = product["title"]
-
-            print(f"Unzipping {title}")
-
-            # Make sure the output folder exists.
-            data_dir = Path(output, title)
-            data_dir.mkdir(parents=True, exist_ok=True)
-
-            zip_filename = Path(output, title + ".zip")
-
-            if Path(data_dir, title).is_dir():
-                continue
-
-            with zipfile.ZipFile(zip_filename, "r") as zip_file:
-                zip_file.extractall(data_dir)
-
-    return products_df
+        for product in gcloud_download(titles, gcloud_api, output=output):
+            product_json_str = products_df[products_df["title"] == product["title"]].to_json(
+                orient="records", date_format="iso"
+            )
+            product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
+            yield {**product_json, **product}
 
 
-def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path(".")) -> pd.DataFrame:
+def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path(".")) -> Iterator[dict]:
     """
     Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
 
     :param titles: Sentinel-2 product ids.
     :param api: Sentinelsat API object.
     :param output: Output folder.
-    :return: pandas dataframe with the product status by id
+    :return: Yields an iterator of dictionaries with the product status
     """
-    product_info, triggered, failed_downloads = api.download_all(
-        ids, str(output), max_attempts=10, n_concurrent_dl=1, lta_retry_delay=600
-    )
 
-    status = []
+    for id_ in ids:
+        try:
+            product_info = api.download(id_, str(output))
 
-    for product in product_info:
-        status.append(
-            {
-                "uuid": product,
+            unzip_product(output, product_info["title"])
+
+            # If there is no error, yield "ok"
+            yield {
+                "uuid": id_,
                 "status": "ok",
             }
-        )
-
-    for product in triggered:
-        status.append(
-            {
-                "uuid": product,
+        except LTATriggered:
+            yield {
+                "uuid": id_,
                 "status": "triggered",
             }
-        )
-
-    for product in failed_downloads:
-        status.append(
-            {
-                "uuid": product,
+        except LTAError:
+            yield {
+                "uuid": id_,
                 "status": "failed",
             }
-        )
 
-    return pd.DataFrame(status)
+
+def unzip_product(output_folder: Path, title: str) -> None:
+    """
+    Unzip a downloaded product inside the same folder
+
+    :param output_folder: Output folder.
+    :param title: Sentinel-2 product title.
+
+    :return: None
+    """
+    # Make sure the output folder exists.
+    data_dir = Path(output_folder, title)
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    zip_filename = Path(output_folder, title + ".zip")
+
+    # We assume the file is already unzip correctly
+    if Path(data_dir, title).is_dir():
+        return
+
+    with zipfile.ZipFile(zip_filename, "r") as zip_file:
+        zip_file.extractall(data_dir)
 
 
 def gcloud_bucket() -> "storage.Client":
@@ -283,21 +285,20 @@ def gcloud_bucket() -> "storage.Client":
     return client
 
 
-def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Path(".")) -> pd.DataFrame:
+def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Path(".")) -> Iterator[dict]:
     """
     Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
 
     :param titles: Sentinel-2 product titles.
     :param api: Google Cloud client object.
     :param output: Output folder.
-    :return: pandas dataframe with the product status by title
+    :return: Yields an iterator of dictionaries with the product status
     """
-    status = []
 
     for title in titles:
         try:
             gcloud_path = get_gcloud_path(title)
-            product_folder = Path(gcloud_path).name
+            product_folder = Path(gcloud_path).name.removesuffix(".SAFE")
 
             blobs = api.list_blobs("gcp-public-data-sentinel-2", prefix=gcloud_path)
 
@@ -319,28 +320,16 @@ def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Pat
                 else:
                     print("File exists, skipping")
 
-            # Upload product zip file to minio
-            local_product_folder = output / product_folder
-            local_zip_file = output / title
-            if not Path.is_file(local_zip_file.with_suffix(".zip")):
-                shutil.make_archive(local_zip_file, "zip", local_product_folder)
-
-            status.append(
-                {
-                    "title": title,
-                    "status": "ok",
-                }
-            )
+            yield {
+                "title": title,
+                "status": "ok",
+            }
         except Exception as e:
-            status.append(
-                {
-                    "title": title,
-                    "status": "failed",
-                    "error": str(e),
-                }
-            )
-
-    return pd.DataFrame(status)
+            yield {
+                "title": title,
+                "status": "failed",
+                "error": str(e),
+            }
 
 
 def get_gcloud_path(title: str) -> str:

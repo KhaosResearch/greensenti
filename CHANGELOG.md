@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+- Add `skip` parameter to download functions to remove specific products from the query results.
+- Add `override_no_data` parameter to mask functions, useful if you want to mask on a different value to the nodata specify in the kwargs.
+
+### Changes
+
+- Download functions on the `dhus` module are now generators of dictionaries instead of a complete dataframe at the end of the download. This allow to each product to be process before the download of all of them is complete.
+- Changed JSON representation of dates from epoch to ISO 8601.
+- Changed behaviour of `band_arithmetic.cloud_mask` to return a GeoTiff instead of a .jp2
+
+### Removed
+
+- The `unzip` parameter from the `dhus` module has been removed. This now defaults to true to maintain consistency between copernicous and gcloud downloads.
+
 ## 0.6.0
 
 ### Added

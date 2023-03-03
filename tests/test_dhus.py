@@ -1,8 +1,5 @@
 from unittest.mock import MagicMock
 
-import pandas as pd
-from pandas.testing import assert_frame_equal
-
 from greensenti import dhus
 
 
@@ -11,34 +8,32 @@ def test_gcloud_path_is_valid():
     assert gcloud_path == "L2/tiles/30/S/UF/S2B_MSIL2A_20221005T105819_N0400_R094_T30SUF_20221005T135951.SAFE"
 
 
-def test_copernicous_download_returns_correct_dataframe():
+def test_copernicous_download_returns_correct_dataframe(monkeypatch):
     # Mock sentinelsat.sentinel.SentinelAPI.download_all
     mock = MagicMock()
-    mock.download_all.return_value = (
-        ["uuid1", "uuid5"],
-        ["uuid2"],
-        ["uuid3", "uuid4"],
+
+    # Mock unzip
+    monkeypatch.setattr(dhus, "unzip_product", lambda *args: None)
+
+    status = list(
+        dhus.copernicous_download(
+            ids=[
+                "uuid1",
+                "uuid2",
+                "uuid3",
+                "uuid4",
+                "uuid5",
+            ],
+            api=mock,
+        )
     )
 
-    status_df = dhus.copernicous_download(
-        ids=[
-            "uuid1",
-            "uuid2",
-            "uuid3",
-            "uuid4",
-            "uuid5",
-        ],
-        api=mock,
-    )
+    expected_status = [
+        {"uuid": "uuid1", "status": "ok"},
+        {"uuid": "uuid2", "status": "ok"},
+        {"uuid": "uuid3", "status": "ok"},
+        {"uuid": "uuid4", "status": "ok"},
+        {"uuid": "uuid5", "status": "ok"},
+    ]
 
-    expected_status = pd.DataFrame(
-        [
-            {"uuid": "uuid1", "status": "ok"},
-            {"uuid": "uuid5", "status": "ok"},
-            {"uuid": "uuid2", "status": "triggered"},
-            {"uuid": "uuid3", "status": "failed"},
-            {"uuid": "uuid4", "status": "failed"},
-        ]
-    )
-
-    assert_frame_equal(status_df, expected_status)
+    assert status == expected_status
