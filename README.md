@@ -1,21 +1,36 @@
 # greensenti
 
 ![CI](https://github.com/KhaosResearch/greensenti/actions/workflows/ci.yml/badge.svg)
-<img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
+![Release](https://github.com/KhaosResearch/greensenti/actions/workflows/release.yml/badge.svg)
+![GitHub Release](https://img.shields.io/github/release/KhaosResearch/greensenti.svg)
+![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)
 
 ## Setup
 
-From PyPI:
+### Pip
+
+Use the following command to install from the latest release on PyPI:
 
 ```console
-$ pip install greensenti
-$ pip install greensenti[gcloud] # For support to download from Google Cloud storage
+python -m pip install "greensenti[complete]"
 ```
 
-From source code:
+or install only the core package with:
 
 ```console
-$ python setup.py install
+python -m pip install greensenti
+```
+
+You can view the list of all optional dependencies under `project.optional-dependencies` in [pyproject.toml](pyproject.toml).
+
+### Install from Source
+
+If you are feeling lucky and want to install the latest version from source, clone the repository and install the package with:
+
+```console
+git clone git@github.com:KhaosResearch/greensenti.git
+cd drama
+python -m pip install ".[complete]"
 ```
 
 ## Usage

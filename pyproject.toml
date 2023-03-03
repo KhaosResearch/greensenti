@@ -1,3 +1,43 @@
+[project]
+name = "greensenti"
+description = "Green-senti client"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "Khaos Research Team", email = "khaos.research@gmail.com" },
+]
+classifiers=[
+    "Intended Audience :: Information Technology",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python",
+    "Typing :: Typed",
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "fire>=0.4.0",
+    "sentinelsat>=1.1.1",
+    "Shapely>=1.8.0",
+    "pandas>=1.4.0",
+    "pyproj>=3.3.0",
+    "rasterio>=1.2.10",
+    "numpy>=1.22.2",
+    "matplotlib>=3.5.1",
+    "simplejson>=3.17.6",
+    "python-dotenv>=1.0.0",
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+dev = ["black==23.1.0", "mypy>=1.0.1", "ruff>=0.0.253"]
+tests = ["pytest>=7.0.0", "pytest-cov>=4.0.0"]
+gcloud = ["google-cloud-storage>=2.5.0"]
+complete = ["greensenti[dev]", "greensenti[tests]", "greensenti[gcloud]"]
+
+[project.scripts]
+greensenti = "greensenti.__main__:cli"
+
 [tool.black]
 line-length = 120
 include = '\.pyi?$'
@@ -5,9 +45,42 @@ exclude = '''
 /(
     \.git
   | \.mypy_cache
+  | \.tox
   | \.venv
   | _build
+  | buck-out
   | build
   | dist
 )/
 '''
+
+[tool.ruff]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "C901",  # too complex
+]
+
+[tool.mypy]
+check_untyped_defs = true
+ignore_errors = false
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+warn_unused_configs = true
+pretty = true
+
+[tool.hatch.version]
+path = "src/greensenti/__init__.py"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
