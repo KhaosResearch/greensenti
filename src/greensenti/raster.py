@@ -23,8 +23,7 @@ def crop_by_shape(filename: Path, geom: Polygon, output: str, override_no_data: 
     :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if this value is present in the raster.
     """
     with rasterio.open(filename) as src:
-        if override_no_data in src.read():
-            raise ValueError(f"Value {override_no_data} is present in the raster.")
+        assert override_no_data not in src.read(), f"Value {override_no_data} is present in the raster."
         out_image, out_transform = mask.mask(src, shapes=[geom], crop=True, nodata=override_no_data)
     out_meta = src.meta.copy()
     out_meta.update(
@@ -99,13 +98,18 @@ def transform_image(band: Path, color_map: Optional[str], output: Path) -> None:
 
 
 def apply_mask(
-    filename: Path, geojson: Path, output: Path | None = None, override_no_data: float | None = None
+    filename: Path,
+    geojson: Path,
+    geojson_crs: str = "epsg:4326",
+    output: Path | None = None,
+    override_no_data: float | None = None,
 ) -> Path:
     """
     Crop image data (jp2 imagery file) by shape.
 
     :param filename: Path to input file.
     :param geojson: Geometry in GeoJSON format.
+    :param geojson_crs: Coordinate reference system of the GeoJSON file. If different from the input file, the shape will be projected.
     :param output: Path to output file. If not provided, the output will be saved in the same directory as the input file.
     :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if this value is present in the raster.
     :return: Path to output file.
@@ -116,8 +120,14 @@ def apply_mask(
     if not output.parent.exists():
         output.parent.mkdir(parents=True)
 
+    with rasterio.open(filename) as file:
+        dsc = file.crs
+
     geojson = read_geojson(geojson)
-    shp = project_shape(geojson["features"][0]["geometry"])
+    if geojson_crs != dsc:
+        shp = project_shape(geojson["features"][0]["geometry"])
+    else:
+        shp = geojson["features"][0]["geometry"]
 
     crop_by_shape(filename=filename, output=str(output), geom=shp, override_no_data=override_no_data)
 
