@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `override_no_data` parameter to mask functions, useful if you want to mask on a different value to the nodata specify in the kwargs.
 - Include `ruff` linter and `pytest-cov` to the CI pipeline.
 - Remove `setup.py` and `setup.cfg` in favour of `pyproject.toml`.
+- Add tests for `greensenti.raster` module.
+- Add `geojson_crs` parameter to `crop_by_shape` function to allow the user to specify the CRS of the GeoJSON file.
 
 ### Changes
 
