@@ -83,6 +83,14 @@ def test_crop_by_shape(tmp_path: Path, raster: Tuple[Path, np.ndarray]):
         assert src.nodata == 255  # check nodata value is preserved
 
 
+def test_crop_by_shape_with_override(tmp_path: Path, raster: Tuple[Path, np.ndarray]):
+    filename, data = raster
+    shp = Polygon([(0.5, 0.5), (2.5, 0.5), (2.5, 2.5), (0.5, 2.5)])
+    output = tmp_path / "out.tif"
+    with pytest.raises(ValueError):
+        crop_by_shape(filename, shp, str(output), override_no_data=0)
+
+
 def test_project_shape():
     geom = Polygon([(1, 2), (3, 4), (5, 6), (7, 8), (9, 10)])
     scs = "epsg:4326"  # WGS84
