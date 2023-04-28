@@ -12,25 +12,21 @@
 Use the following command to install from the latest release on PyPI:
 
 ```console
-python -m pip install "greensenti[complete]"
-```
-
-or install only the core package with:
-
-```console
 python -m pip install greensenti
 ```
 
-You can view the list of all optional dependencies under `project.optional-dependencies` in [pyproject.toml](pyproject.toml).
+or install with all [optional dependencies](pyproject.toml):
+
+```console
+python -m pip install "greensenti[complete]"
+```
 
 ### Install from Source
 
-If you are feeling lucky and want to install the latest version from source, clone the repository and install the package with:
+If you are feeling lucky and want to install the latest version from source, install the package with:
 
 ```console
-git clone git@github.com:KhaosResearch/greensenti.git
-cd drama
-python -m pip install ".[complete]"
+python -m pip install "greensenti[complete] @ git+ssh://git@github/KhaosResearch/greensenti.git"
 ```
 
 ## Usage
