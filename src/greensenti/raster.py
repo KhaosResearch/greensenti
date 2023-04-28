@@ -23,7 +23,9 @@ def crop_by_shape(filename: Path, geom: Polygon, output: str, override_no_data: 
     :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if this value is present in the raster.
     """
     with rasterio.open(filename) as src:
-        assert override_no_data not in src.read(), f"Value {override_no_data} is present in the raster."
+        if override_no_data is not None:
+            if override_no_data in src.read():
+                raise ValueError(f"Value {override_no_data} is present in the raster.")
         out_image, out_transform = mask.mask(src, shapes=[geom], crop=True, nodata=override_no_data)
     out_meta = src.meta.copy()
     out_meta.update(
