@@ -26,7 +26,7 @@ python -m pip install "greensenti[complete]"
 If you are feeling lucky and want to install the latest version from source, install the package with:
 
 ```console
-python -m pip install "greensenti[complete] @ git+ssh://git@github/KhaosResearch/greensenti.git"
+python -m pip install "greensenti[complete] @ git+ssh://git@github.com/KhaosResearch/greensenti.git"
 ```
 
 ## Usage
