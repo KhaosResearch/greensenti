@@ -353,7 +353,8 @@ def bri(b3: Path, b5: Path, b8: Path, *, output: Path | None = None) -> np.ndarr
     :return: BRI index.
     """
     band_3, kwargs = read(b3)
-    band_5, _ = read(b5)
+    band_5, kwargs_5 = read(b5)
+    band_5, _ = rescale_band(band_5, kwargs_5)
     band_8, _ = read(b8)
 
     bri = (1 / band_3 - 1 / band_5) / band_8
