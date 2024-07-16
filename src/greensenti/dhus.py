@@ -202,9 +202,10 @@ def download(
     ).json()
 
     products_df = pd.DataFrame.from_dict(response["value"])
+    products_df["title"] = products_df["Name"]
 
     if skip:
-        products_df = products_df[~products_df["name"].isin(skip)]
+        products_df = products_df[~products_df["title"].isin(skip)]
     ids = products_df.index
 
     print(f"Found {len(ids)} scenes between {from_date} and {to_date}")
@@ -219,9 +220,9 @@ More detail can be read here: https://dataspace.copernicus.eu/news/2023-9-28-acc
     else:
         gcloud_api = gcloud_bucket()
         # Google cloud doesn't utilize ids, only titles
-        titles = products_df["Name"]
+        titles = products_df["title"]
         for product in gcloud_download(titles, gcloud_api, output=output):
-            product_json_str = products_df[products_df["Name"] == product["Name"]].to_json(
+            product_json_str = products_df[products_df["title"] == product["title"]].to_json(
                 orient="records", date_format="iso"
             )
             product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
@@ -301,12 +302,12 @@ def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Pat
                     print("File exists, skipping")
 
             yield {
-                "Name": title,
+                "title": title,
                 "status": "ok",
             }
         except Exception as e:
             yield {
-                "Name": title,
+                "title": title,
                 "status": "failed",
                 "error": str(e),
             }
