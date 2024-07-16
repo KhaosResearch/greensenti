@@ -5,6 +5,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterator, List, Union
 
+import pandas as pd
+import requests
 from sentinelsat.exceptions import LTAError, LTATriggered
 from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 
@@ -160,6 +162,13 @@ def download(
     elif not to_date:
         to_date = datetime.now()
 
+    if isinstance(output, str):
+        output = Path(output)
+
+    # When using dataspace,they must be string
+    from_date = datetime.strftime(from_date, "%Y-%m-%d")
+    to_date = datetime.strftime(to_date, "%Y-%m-%d")
+
     # Load geojson file* and download products for an interval of dates.
     #  *see: http://geojson.io/
     if geojson:
@@ -174,30 +183,20 @@ def download(
         if not text_match.endswith("*"):
             text_match += "*"
 
-    sentinel_api = SentinelAPI(dhus_username, dhus_password, dhus_host, show_progressbars=False)
+    response = requests.get(
+        f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection/Name eq 'SENTINEL-2' and contains(Name,'MSIL2A') and OData.CSC.Intersects(area=geography'SRID=4326;{footprint}') and ContentDate/Start gt {from_date}T00:00:00.000Z and ContentDate/Start lt {to_date}T00:00:00.000Z&$top=1000"
+    ).json()
 
-    print("Searching for products in scene")
+    products_df = pd.DataFrame.from_dict(response["value"])
 
-    # Search is limited to those scenes that intersect with the AOI
-    # (area of interest) polygon.
-    products = sentinel_api.query(
-        area=footprint,
-        filename=text_match,
-        producttype="S2MSI2A",
-        platformname="Sentinel-2",
-        cloudcoverpercentage=(0, max_clouds),
-        date=(from_date, to_date),
-    )
-
-    # Get the list of products.
-    products_df = sentinel_api.to_dataframe(products)
     if skip:
-        products_df = products_df[~products_df["title"].isin(skip)]
+        products_df = products_df[~products_df["name"].isin(skip)]
     ids = products_df.index
 
     print(f"Found {len(ids)} scenes between {from_date} and {to_date}")
 
     if not gcloud:
+        # WIP: add support for new CDSE
         for product in copernicous_download(ids, sentinel_api, output=output):
             product_json_str = products_df[products_df["id"] == product["id"]].to_json(
                 orient="records", date_format="iso"
@@ -207,9 +206,9 @@ def download(
     else:
         gcloud_api = gcloud_bucket()
         # Google cloud doesn't utilize ids, only titles
-        titles = products_df["title"]
+        titles = products_df["Name"]
         for product in gcloud_download(titles, gcloud_api, output=output):
-            product_json_str = products_df[products_df["title"] == product["title"]].to_json(
+            product_json_str = products_df[products_df["Name"] == product["Name"]].to_json(
                 orient="records", date_format="iso"
             )
             product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
@@ -298,7 +297,7 @@ def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Pat
 
     for title in titles:
         try:
-            gcloud_path = get_gcloud_path(title)
+            gcloud_path = get_gcloud_path(title.removesuffix(".SAFE"))
             product_folder = Path(gcloud_path).name.removesuffix(".SAFE")
 
             blobs = api.list_blobs("gcp-public-data-sentinel-2", prefix=gcloud_path)
@@ -322,12 +321,12 @@ def gcloud_download(titles: List[str], api: "storage.Client", output: Path = Pat
                     print("File exists, skipping")
 
             yield {
-                "title": title,
+                "Name": title,
                 "status": "ok",
             }
         except Exception as e:
             yield {
-                "title": title,
+                "Name": title,
                 "status": "failed",
                 "error": str(e),
             }

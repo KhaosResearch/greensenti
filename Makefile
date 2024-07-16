@@ -14,7 +14,10 @@ format: clean
 	@python -m black src/ tests/
 
 lint:
-	@python -m ruff src/ tests/
+	@python -m ruff check --extend-select I src/ tests/
+
+lint-fix:
+	@python -m ruff check --extend-select I --fix src/ tests/
 
 static-check:
 	@python -m mypy src/ tests/
