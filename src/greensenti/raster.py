@@ -2,13 +2,13 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
+import geojson
 import pyproj
 import rasterio
 from matplotlib import pyplot as plt
 from rasterio import mask
 from rasterio.plot import adjust_band, reshape_as_image, reshape_as_raster
 from rasterio.warp import Resampling, reproject
-from sentinelsat import read_geojson
 from shapely.geometry import Polygon, shape
 from shapely.ops import transform
 
@@ -125,7 +125,8 @@ def apply_mask(
     with rasterio.open(filename) as file:
         dsc = file.crs
 
-    geojson = read_geojson(geojson)
+    with open(geojson) as f:
+        geojson = geojson.load(f)
     if geojson_crs != dsc:
         shp = project_shape(geojson["features"][0]["geometry"])
     else:

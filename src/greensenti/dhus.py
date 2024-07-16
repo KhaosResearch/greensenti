@@ -1,14 +1,16 @@
 import json
 import os
+import re
+import warnings
 import zipfile
 from datetime import datetime
 from pathlib import Path
 from typing import Iterator, List, Union
 
+import geojson
+import geomet.wkt
 import pandas as pd
 import requests
-from sentinelsat.exceptions import LTAError, LTATriggered
-from sentinelsat.sentinel import SentinelAPI, geojson_to_wkt, read_geojson
 
 try:
     GCLOUD_DISABLED = False
@@ -16,6 +18,19 @@ try:
 except ImportError:
     GCLOUD_DISABLED = True
     storage = None
+
+
+def to_wkt(geojson_file: Path, decimals: int = 4) -> str:
+    with open(geojson_file) as f:
+        geojson_ = geojson.load(f)
+
+    # Extract geometry from GeoJSON
+    geometry = geojson_["features"][0]["geometry"]
+
+    wkt = geomet.wkt.dumps(geometry, decimals=decimals)
+    # Strip unnecessary spaces
+    wkt = re.sub(r"(?<!\d) ", "", wkt)
+    return wkt
 
 
 def download_by_title(
@@ -50,7 +65,7 @@ def download_by_title(
     :return: Yields an iterator of dictionaries with the product metadata and download status
     """
     yield from download(
-        geojson=None,
+        geojson_file=None,
         text_match=text_match,
         from_date=from_date,
         to_date=to_date,
@@ -65,7 +80,7 @@ def download_by_title(
 
 
 def download_by_geometry(
-    geojson: Path,
+    geojson_file: Path,
     from_date: Union[str, datetime] = None,
     to_date: Union[str, datetime] = None,
     *,
@@ -83,7 +98,7 @@ def download_by_geometry(
     To connect to Google Cloud to download Sentinel-2 data the enviroment variable GOOGLE_APPLICATION_CREDENTIALS to be set
     as defined here https://googleapis.dev/python/google-api-core/latest/auth.html#overview.
 
-    :param geojson: GeoJSON file with product geometries.
+    :param geojson_file: GeoJSON file with product geometries.
     :param from_date: From date %Y-%m-%d (begin date).
     :param to_date: To date %Y-%m-%d (end date).
     :param max_clouds: Max cloud percentage.
@@ -96,7 +111,7 @@ def download_by_geometry(
     :return: Yields an iterator of dictionaries with the product metadata and download status
     """
     yield from download(
-        geojson=geojson,
+        geojson_file=geojson_file,
         text_match=None,
         from_date=from_date,
         to_date=to_date,
@@ -111,7 +126,7 @@ def download_by_geometry(
 
 
 def download(
-    geojson: Path = None,
+    geojson_file: Path = None,
     text_match: str | None = "*",
     from_date: Union[str, datetime] = None,
     to_date: Union[str, datetime] = None,
@@ -130,7 +145,7 @@ def download(
     To connect to Google Cloud to download Sentinel-2 data the enviroment variable GOOGLE_APPLICATION_CREDENTIALS to be set
     as defined here https://googleapis.dev/python/google-api-core/latest/auth.html#overview.
 
-    :param geojson: GeoJSON file with product geometries.
+    :param geojson_file: GeoJSON file with product geometries.
     :param text_match: Regular expresion to match the product filename.
     :param from_date: From date %Y-%m-%d (begin date).
     :param to_date: To date %Y-%m-%d (end date).
@@ -171,9 +186,8 @@ def download(
 
     # Load geojson file* and download products for an interval of dates.
     #  *see: http://geojson.io/
-    if geojson:
-        geojson = read_geojson(geojson)
-        footprint = geojson_to_wkt(geojson)
+    if geojson_file:
+        footprint = to_wkt(geojson_file)
     else:
         footprint = None
 
@@ -197,12 +211,11 @@ def download(
 
     if not gcloud:
         # WIP: add support for new CDSE
-        for product in copernicous_download(ids, sentinel_api, output=output):
-            product_json_str = products_df[products_df["id"] == product["id"]].to_json(
-                orient="records", date_format="iso"
-            )
-            product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
-            yield {**product_json, **product}
+        warnings.warn(
+            """This method is no longer works, support for the new CDSE API is being worked on.
+More detail can be read here: https://dataspace.copernicus.eu/news/2023-9-28-accessing-sentinel-mission-data-new-copernicus-data-space-ecosystem-apis""",
+            DeprecationWarning,
+        )
     else:
         gcloud_api = gcloud_bucket()
         # Google cloud doesn't utilize ids, only titles
@@ -213,39 +226,6 @@ def download(
             )
             product_json = json.loads(product_json_str)[0]  # Pandas gives a list of elements always
             yield {**product_json, **product}
-
-
-def copernicous_download(ids: List[str], api: SentinelAPI, output: Path = Path(".")) -> Iterator[dict]:
-    """
-    Downloads a list of Sentinel-2 products by a list of titles from Google Cloud.
-
-    :param titles: Sentinel-2 product ids.
-    :param api: Sentinelsat API object.
-    :param output: Output folder.
-    :return: Yields an iterator of dictionaries with the product status
-    """
-
-    for id_ in ids:
-        try:
-            product_info = api.download(id_, str(output))
-
-            unzip_product(output, product_info["title"])
-
-            # If there is no error, yield "ok"
-            yield {
-                "uuid": id_,
-                "status": "ok",
-            }
-        except LTATriggered:
-            yield {
-                "uuid": id_,
-                "status": "triggered",
-            }
-        except LTAError:
-            yield {
-                "uuid": id_,
-                "status": "failed",
-            }
 
 
 def unzip_product(output_folder: Path, title: str) -> None:

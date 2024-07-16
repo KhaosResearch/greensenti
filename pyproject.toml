@@ -17,7 +17,9 @@ classifiers=[
 ]
 dependencies = [
     "fire>=0.5.0",
-    "sentinelsat>=1.2.1",
+    "requests",
+    "geojson >= 2",
+    "geomet",
     "Shapely==2.0.1",
     "pandas==2.0.0",
     "pyproj>=3.5.0",
