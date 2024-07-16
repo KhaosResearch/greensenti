@@ -7,10 +7,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Iterator, List, Union
 
-import geojson
 import geomet.wkt
 import pandas as pd
 import requests
+
+import geojson
 
 try:
     GCLOUD_DISABLED = False
@@ -216,6 +217,7 @@ def download(
             """This method is no longer works, support for the new CDSE API is being worked on.
 More detail can be read here: https://dataspace.copernicus.eu/news/2023-9-28-accessing-sentinel-mission-data-new-copernicus-data-space-ecosystem-apis""",
             DeprecationWarning,
+            stacklevel=2,
         )
     else:
         gcloud_api = gcloud_bucket()

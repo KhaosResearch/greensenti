@@ -40,7 +40,7 @@ def raster(tmp_path: Path) -> Tuple[Path, np.ndarray]:
 
 
 @pytest.fixture
-def geojson(tmp_path: Path) -> Path:
+def geojson_file(tmp_path: Path) -> Path:
     """Create a temporary GeoJSON file for testing."""
     filepath = tmp_path / "test.geojson"
     with open(filepath, "w") as f:
@@ -127,10 +127,12 @@ def test_transform_image(tmp_path: Path, raster: Tuple[Path, np.ndarray]):
     assert output_file.stat().st_size > 0
 
 
-def test_apply_mask(tmp_path: Path, geojson: Path, raster: Tuple[Path, np.ndarray]):
+def test_apply_mask(tmp_path: Path, geojson_file: Path, raster: Tuple[Path, np.ndarray]):
     input_file, _ = raster
     output_file = tmp_path / "masked_image.tif"
-    output_path = apply_mask(filename=input_file, geojson=geojson, geojson_crs="epsg:4326", output=output_file)
+    output_path = apply_mask(
+        filename=input_file, geojson_file=geojson_file, geojson_crs="epsg:4326", output=output_file
+    )
     assert output_path.is_file()
     assert output_path.stat().st_size > 0
 

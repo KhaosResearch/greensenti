@@ -2,7 +2,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
 from greensenti.band_arithmetic import (
     bri,
     bsi,
