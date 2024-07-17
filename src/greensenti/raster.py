@@ -8,9 +8,10 @@ from matplotlib import pyplot as plt
 from rasterio import mask
 from rasterio.plot import adjust_band, reshape_as_image, reshape_as_raster
 from rasterio.warp import Resampling, reproject
-from sentinelsat import read_geojson
 from shapely.geometry import Polygon, shape
 from shapely.ops import transform
+
+import geojson
 
 
 def crop_by_shape(filename: Path, geom: Polygon, output: str, override_no_data: float | None = None) -> None:
@@ -101,7 +102,7 @@ def transform_image(band: Path, color_map: Optional[str], output: Path) -> None:
 
 def apply_mask(
     filename: Path,
-    geojson: Path,
+    geojson_file: Path,
     geojson_crs: str = "epsg:4326",
     output: Path | None = None,
     override_no_data: float | None = None,
@@ -110,7 +111,7 @@ def apply_mask(
     Crop image data (jp2 imagery file) by shape.
 
     :param filename: Path to input file.
-    :param geojson: Geometry in GeoJSON format.
+    :param geojson_file: Geometry in GeoJSON format.
     :param geojson_crs: Coordinate reference system of the GeoJSON file. If different from the input file, the shape will be projected.
     :param output: Path to output file. If not provided, the output will be saved in the same directory as the input file.
     :param override_no_data: Value to fill outside the crop area. Useful to separate no data of fill. Raises `ValueError` if this value is present in the raster.
@@ -125,11 +126,12 @@ def apply_mask(
     with rasterio.open(filename) as file:
         dsc = file.crs
 
-    geojson = read_geojson(geojson)
+    with open(geojson_file) as f:
+        geojson_ = geojson.load(f)
     if geojson_crs != dsc:
-        shp = project_shape(geojson["features"][0]["geometry"])
+        shp = project_shape(geojson_["features"][0]["geometry"])
     else:
-        shp = geojson["features"][0]["geometry"]
+        shp = geojson_["features"][0]["geometry"]
 
     crop_by_shape(filename=filename, output=str(output), geom=shp, override_no_data=override_no_data)
 
