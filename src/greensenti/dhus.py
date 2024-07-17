@@ -34,6 +34,25 @@ def to_wkt(geojson_file: Path, decimals: int = 4) -> str:
     return wkt
 
 
+def get_metadata_cdse(footprint: str, from_date: str, to_date) -> pd.DataFrame:
+    """
+    Downloads metadata from the Copernicus Data Space Ecosystem (CDSE) API.
+
+    :param footprint: Footprint in WKT format.
+    :param from_date: From date %Y-%m-%d (begin date).
+    :param to_date: To date %Y-%m-%d (end date).
+    :return: DataFrame with metadata
+    """
+    response = requests.get(
+        f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection/Name eq 'SENTINEL-2' and contains(Name,'MSIL2A') and OData.CSC.Intersects(area=geography'SRID=4326;{footprint}') and ContentDate/Start gt {from_date}T00:00:00.000Z and ContentDate/Start lt {to_date}T00:00:00.000Z&$top=1000"
+    ).json()
+
+    products_df = pd.DataFrame.from_dict(response["value"])
+    products_df["title"] = products_df["Name"]
+
+    return products_df
+
+
 def download_by_title(
     text_match: str,
     from_date: str | datetime = None,
@@ -195,15 +214,17 @@ def download(
     # Text match uses filename, to avoid users having to add unknown extensions,
     # add wildcard at the end
     if text_match:
+        warnings.warn(
+            """Text matching is still not supported for the new CDSE API and is being worked on.
+More detail can be read here: https://dataspace.copernicus.eu/news/2023-9-28-accessing-sentinel-mission-data-new-copernicus-data-space-ecosystem-apis""",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
         if not text_match.endswith("*"):
             text_match += "*"
 
-    response = requests.get(
-        f"https://catalogue.dataspace.copernicus.eu/odata/v1/Products?$filter=Collection/Name eq 'SENTINEL-2' and contains(Name,'MSIL2A') and OData.CSC.Intersects(area=geography'SRID=4326;{footprint}') and ContentDate/Start gt {from_date}T00:00:00.000Z and ContentDate/Start lt {to_date}T00:00:00.000Z&$top=1000"
-    ).json()
-
-    products_df = pd.DataFrame.from_dict(response["value"])
-    products_df["title"] = products_df["Name"]
+    products_df = get_metadata_cdse(footprint, from_date, to_date)
 
     if skip:
         products_df = products_df[~products_df["title"].isin(skip)]
