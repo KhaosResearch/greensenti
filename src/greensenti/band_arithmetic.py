@@ -68,7 +68,7 @@ def cloud_mask(scl: Path, *, output: Path | None = None) -> np.ndarray:
     :param output: Path to output file.
     :return: Cloud cover mask (0 - no cloud, 1 - cloud).
     """
-    scl_cloud_values = [3, 8, 9, 10, 11]  # Classification band's cloud-related values.
+    scl_cloud_values = [3, 8, 9, 10]  # Classification band's cloud-related values.
 
     with rasterio.open(scl, "r") as f:
         kwargs = f.meta
